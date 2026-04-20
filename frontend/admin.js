@@ -1,5 +1,18 @@
-const ADMIN_API_BASE = "http://127.0.0.1:8000/api";
+const adminRuntimeConfig = window.APP_CONFIG || {};
+const adminMode = adminRuntimeConfig.mode || "direct";
+const adminEndpointConfig =
+  (adminRuntimeConfig.endpoints && adminRuntimeConfig.endpoints[adminMode]) ||
+  (adminRuntimeConfig.endpoints && adminRuntimeConfig.endpoints.direct) ||
+  { API_BASE: "http://127.0.0.1:8000/api", gateway: false };
+
+const ADMIN_API_BASE = adminEndpointConfig.API_BASE;
 let adminToken = "";
+
+function updateAdminModeBanner() {
+  const modeBox = document.getElementById("admin-runtime-mode");
+  if (!modeBox) return;
+  modeBox.textContent = adminEndpointConfig.gateway ? "网关转发模式" : "直连服务模式";
+}
 
 async function adminLogin() {
   const username = document.getElementById("admin-username").value.trim();
@@ -20,7 +33,9 @@ async function adminLogin() {
 
 async function loadLogs() {
   if (!adminToken) return;
-  const res = await fetch(`${ADMIN_API_BASE}/admin/logs?token=${encodeURIComponent(adminToken)}`);
+  const res = await fetch(
+    `${ADMIN_API_BASE}/admin/logs?token=${encodeURIComponent(adminToken)}`
+  );
   const data = await res.json();
   const box = document.getElementById("logs-box");
   box.innerHTML = "";
@@ -34,7 +49,9 @@ async function loadLogs() {
 
 async function loadOverview() {
   if (!adminToken) return;
-  const res = await fetch(`${ADMIN_API_BASE}/admin/overview?token=${encodeURIComponent(adminToken)}`);
+  const res = await fetch(
+    `${ADMIN_API_BASE}/admin/overview?token=${encodeURIComponent(adminToken)}`
+  );
   const data = await res.json();
   const box = document.getElementById("overview-box");
   box.innerHTML = "";
@@ -48,7 +65,9 @@ async function loadOverview() {
 
 async function loadConfig() {
   if (!adminToken) return;
-  const res = await fetch(`${ADMIN_API_BASE}/admin/config?token=${encodeURIComponent(adminToken)}`);
+  const res = await fetch(
+    `${ADMIN_API_BASE}/admin/config?token=${encodeURIComponent(adminToken)}`
+  );
   const data = await res.json();
   const box = document.getElementById("config-box");
   box.innerHTML = "";
@@ -71,8 +90,10 @@ async function updateConfig() {
   });
   await loadConfig();
   await loadLogs();
+  await loadOverview();
 }
 
+updateAdminModeBanner();
 document.getElementById("admin-login-btn").addEventListener("click", adminLogin);
 document.getElementById("load-overview-btn").addEventListener("click", loadOverview);
 document.getElementById("load-logs-btn").addEventListener("click", loadLogs);

@@ -8,6 +8,7 @@ class FrontendContractTests(unittest.TestCase):
         app_js = (root / "frontend" / "app.js").read_text(encoding="utf-8")
         self.assertIn("/api/login", app_js)
         self.assertIn("/api/chat", app_js)
+        self.assertIn("window.APP_CONFIG", app_js)
 
     def test_admin_frontend_supports_overview_panel(self):
         root = Path.cwd()
@@ -24,3 +25,9 @@ class FrontendContractTests(unittest.TestCase):
         self.assertIn("session-title", index_html)
         self.assertIn("demo-grid", index_html)
         self.assertIn("overview-cards", admin_html)
+
+    def test_frontend_has_runtime_config_file(self):
+        root = Path.cwd()
+        config_js = (root / "frontend" / "config.js").read_text(encoding="utf-8")
+        self.assertIn("API_BASE", config_js)
+        self.assertIn("gateway", config_js)

@@ -1,4 +1,11 @@
-const API_BASE = "http://127.0.0.1:8000/api";
+const runtimeConfig = window.APP_CONFIG || {};
+const mode = runtimeConfig.mode || "direct";
+const endpointConfig =
+  (runtimeConfig.endpoints && runtimeConfig.endpoints[mode]) ||
+  (runtimeConfig.endpoints && runtimeConfig.endpoints.direct) ||
+  { API_BASE: "http://127.0.0.1:8000/api", gateway: false };
+
+const API_BASE = endpointConfig.API_BASE;
 const LOGIN_ENDPOINT = "/api/login";
 const CHAT_ENDPOINT = "/api/chat";
 let authToken = "";
@@ -8,6 +15,12 @@ function appendMessage(title, content, targetId = "chat-log") {
   node.className = "message-card";
   node.innerHTML = `<h4>${title}</h4><p>${content}</p>`;
   document.getElementById(targetId).prepend(node);
+}
+
+function updateModeBanner() {
+  const modeBox = document.getElementById("runtime-mode-value");
+  if (!modeBox) return;
+  modeBox.textContent = endpointConfig.gateway ? "网关转发模式" : "直连服务模式";
 }
 
 async function login() {
@@ -71,6 +84,7 @@ async function loadHistory() {
   });
 }
 
+updateModeBanner();
 document.getElementById("login-btn").addEventListener("click", login);
 document.getElementById("send-btn").addEventListener("click", sendMessage);
 document.getElementById("load-history-btn").addEventListener("click", loadHistory);

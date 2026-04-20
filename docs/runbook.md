@@ -5,17 +5,69 @@
 - Python 3.11+
 - FastAPI、uvicorn
 - 浏览器
-- Linux 环境用于编译和运行 C++ 网关
+- Windows、Linux 或 WSL
+- Linux/WSL 环境用于编译和运行 C++ 网关
 
-## Python 服务启动
+## 统一端口
+
+- Python 服务：`8000`
+- C++ 网关：`8080`
+- 前端静态服务：`5500`
+
+## Windows 运行
+
+### 1. 启动 Python 服务
 
 ```powershell
-C:\Users\kidosto\.cache\codex-runtimes\codex-primary-runtime\dependencies\python\python.exe -m uvicorn services.ai_service.app.main:app --host 127.0.0.1 --port 8000
+.\scripts\start_api.ps1
 ```
+
+### 2. 启动前端静态服务
+
+```powershell
+.\scripts\start_frontend.ps1
+```
+
+### 3. 打开页面
+
+- `http://127.0.0.1:5500/frontend/index.html`
+- `http://127.0.0.1:5500/frontend/admin.html`
+
+## Linux / WSL 运行
+
+### 1. 启动 Python 服务
+
+```bash
+bash scripts/start_api.sh
+```
+
+### 2. 启动前端静态服务
+
+```bash
+bash scripts/start_frontend.sh
+```
+
+### 3. 编译 C++ 网关
+
+```bash
+bash scripts/build_gateway_wsl.sh
+```
+
+### 4. 启动 C++ 网关
+
+```bash
+cd cpp_gateway/build
+./llm_gateway
+```
+
+### 5. 通过网关访问前端
+
+- `http://127.0.0.1:5500/frontend/index.html?mode=gateway`
+- `http://127.0.0.1:5500/frontend/admin.html?mode=gateway`
 
 ## 真实大模型接口配置
 
-如果需要让系统调用真实大模型，而不是使用演示回复，在启动前设置以下环境变量：
+### Windows PowerShell
 
 ```powershell
 $env:LLM_API_URL="https://your-model-endpoint/v1/chat/completions"
@@ -23,40 +75,19 @@ $env:LLM_API_KEY="your-api-key"
 $env:LLM_MODEL_NAME="your-model-name"
 ```
 
-未配置时，系统会自动退回演示模式，便于答辩时稳定展示。
-
-## 前端访问
-
-直接打开：
-
-- `frontend/index.html`
-- `frontend/admin.html`
-
-如果浏览器阻止本地文件的接口访问，可改用静态文件服务：
-
-```powershell
-python -m http.server 5500
-```
-
-然后访问：
-
-- `http://127.0.0.1:5500/frontend/index.html`
-- `http://127.0.0.1:5500/frontend/admin.html`
-
-## Linux C++ 网关编译
+### Linux / WSL
 
 ```bash
-cd cpp_gateway
-mkdir -p build
-cd build
-cmake ..
-make
-./llm_gateway
+export LLM_API_URL="https://your-model-endpoint/v1/chat/completions"
+export LLM_API_KEY="your-api-key"
+export LLM_MODEL_NAME="your-model-name"
 ```
 
-当前网关会监听 `8080` 端口，并将 `/api/*` 请求转发到 `127.0.0.1:8000` 的 Python 服务。
+未配置时，系统自动回退到演示模式，适合答辩和离线展示。
 
-## 默认账号
+## 支持边界
 
-- 管理员：`admin / admin123`
-- 普通用户：`student / student123`
+- Windows：前端与 Python 服务正式支持
+- WSL：前端、Python 服务、C++ 网关联调正式支持
+- Linux：完整部署与高并发验证目标环境
+- 不承诺 Windows 原生运行 epoll 网关

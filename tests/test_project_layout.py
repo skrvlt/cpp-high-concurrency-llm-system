@@ -12,3 +12,16 @@ class ProjectLayoutTests(unittest.TestCase):
         ]
         missing = [str(p) for p in required if not p.exists()]
         self.assertFalse(missing, f"Missing core files: {missing}")
+
+    def test_cross_platform_docs_and_scripts_exist(self):
+        root = Path.cwd()
+        required = [
+            root / "docs" / "platform-support.md",
+            root / "scripts" / "start_api.ps1",
+            root / "scripts" / "start_frontend.ps1",
+            root / "scripts" / "start_api.sh",
+            root / "scripts" / "start_frontend.sh",
+            root / "scripts" / "build_gateway_wsl.sh",
+        ]
+        missing = [str(p) for p in required if not p.exists()]
+        self.assertFalse(missing, f"Missing cross-platform files: {missing}")

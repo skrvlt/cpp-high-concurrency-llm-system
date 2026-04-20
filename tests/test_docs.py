@@ -41,3 +41,16 @@ class DocsTests(unittest.TestCase):
             "附录B 后续补充材料说明",
         ]:
             self.assertIn(marker, text)
+
+    def test_docs_mention_windows_linux_wsl_support(self):
+        runbook = (Path.cwd() / "docs" / "runbook.md").read_text(encoding="utf-8")
+        platform_doc = (Path.cwd() / "docs" / "platform-support.md").read_text(
+            encoding="utf-8"
+        )
+        thesis = (Path.cwd() / "output" / "doc" / "毕业设计说明书初稿.md").read_text(
+            encoding="utf-8"
+        )
+        for text in [runbook, platform_doc, thesis]:
+            self.assertIn("Windows", text)
+            self.assertIn("Linux", text)
+            self.assertIn("WSL", text)

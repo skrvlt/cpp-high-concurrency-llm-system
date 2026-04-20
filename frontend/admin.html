@@ -10,6 +10,10 @@
   <main class="layout admin-layout">
     <section class="panel">
       <h1>管理员控制台</h1>
+      <div class="session-title">
+        <span>当前运行模式</span>
+        <strong id="admin-runtime-mode">未检测</strong>
+      </div>
       <div class="form-row">
         <label>管理员用户名</label>
         <input id="admin-username" value="admin">
@@ -55,6 +59,7 @@
       <button id="update-config-btn">更新配置</button>
     </section>
   </main>
+  <script src="./config.js"></script>
   <script src="./admin.js"></script>
 </body>
 </html>
