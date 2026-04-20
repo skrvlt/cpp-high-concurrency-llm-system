@@ -8,6 +8,7 @@
 - `db/schema.sql`：MySQL 数据库结构
 - `output/doc/`：毕业设计说明书初稿
 - `docs/`：架构、运行和测试说明
+- `references/`：开题报告、学校模板、图表示例和外部参考毕设资料
 
 ## 第一版功能
 
