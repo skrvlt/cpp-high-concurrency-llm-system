@@ -128,6 +128,7 @@ class AppService:
         session = self.repository.get_session(state.session_id)
         return HistoryResponse(
             session_id=session.id,
+            title=session.title,
             messages=[
                 {
                     "user_message": item.user_message,
@@ -171,6 +172,25 @@ class AppService:
             )
         )
         return updated
+
+    def overview(self, token: str) -> Dict[str, int | str]:
+        state = self.get_token_state(token)
+        if state.role != "admin":
+            raise PermissionError("仅管理员可查看系统概览")
+
+        sessions = self.repository.list_sessions()
+        users = self.repository.list_users()
+        logs = self.repository.list_logs()
+        message_count = sum(len(session.entries) for session in sessions)
+        active_users = len({session.username for session in sessions})
+        return {
+            "user_count": len(users),
+            "active_user_count": active_users,
+            "session_count": len(sessions),
+            "message_count": message_count,
+            "log_count": len(logs),
+            "model_name": self.repository.get_config().get("model_name", "demo-llm"),
+        }
 
 
 service = AppService()

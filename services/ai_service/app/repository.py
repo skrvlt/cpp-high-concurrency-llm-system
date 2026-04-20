@@ -38,6 +38,8 @@ class InMemoryRepository:
         self, session_id: int, user_message: str, assistant_message: str
     ) -> SessionState:
         session = self.get_session(session_id)
+        if session.title == "默认会话":
+            session.title = (user_message[:18] + "...") if len(user_message) > 18 else user_message
         session.entries.append(
             ChatEntry(
                 user_message=user_message,
@@ -58,3 +60,9 @@ class InMemoryRepository:
     def update_config(self, key: str, value: str) -> Dict[str, str]:
         self.config[key] = value
         return self.get_config()
+
+    def list_users(self) -> List[User]:
+        return list(self.users.values())
+
+    def list_sessions(self) -> List[SessionState]:
+        return list(self.sessions.values())

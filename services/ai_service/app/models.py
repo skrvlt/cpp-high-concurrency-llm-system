@@ -71,6 +71,7 @@ class ChatResponse(BaseModel):
 
 class HistoryResponse(BaseModel):
     session_id: int
+    title: str
     messages: List[Dict[str, str]]
 
     def __len__(self) -> int:

@@ -70,6 +70,16 @@ def get_config(token: str):
         raise HTTPException(status_code=403, detail=str(exc)) from exc
 
 
+@router.get("/admin/overview")
+def overview(token: str):
+    try:
+        return service.overview(token)
+    except ValueError as exc:
+        raise HTTPException(status_code=401, detail=str(exc)) from exc
+    except PermissionError as exc:
+        raise HTTPException(status_code=403, detail=str(exc)) from exc
+
+
 @router.post("/admin/config")
 def update_config(payload: ConfigUpdateRequest):
     try:

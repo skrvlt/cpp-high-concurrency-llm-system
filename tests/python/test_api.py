@@ -32,6 +32,8 @@ class ApiTests(unittest.TestCase):
         self.assertEqual(200, history.status_code)
         self.assertEqual(1, len(history.json()["messages"]))
         self.assertIn("毕业设计怎么开始", history.json()["messages"][0]["user_message"])
+        self.assertIn("title", history.json())
+        self.assertTrue(history.json()["title"])
 
     def test_admin_can_read_logs_and_update_config(self):
         login = client.post(
@@ -62,3 +64,28 @@ class ApiTests(unittest.TestCase):
 
         logs = client.get(f"/api/admin/logs?token={token}")
         self.assertEqual(403, logs.status_code)
+
+    def test_admin_can_read_system_overview(self):
+        student_login = client.post(
+            "/api/login", json={"username": "student", "password": "student123"}
+        )
+        student_token = student_login.json()["token"]
+        client.post(
+            "/api/chat",
+            json={"token": student_token, "message": "帮我概括一下毕业设计系统的目标"},
+        )
+
+        admin_login = client.post(
+            "/api/login", json={"username": "admin", "password": "admin123"}
+        )
+        admin_token = admin_login.json()["token"]
+        overview = client.get(f"/api/admin/overview?token={admin_token}")
+
+        self.assertEqual(200, overview.status_code)
+        body = overview.json()
+        self.assertIn("user_count", body)
+        self.assertIn("session_count", body)
+        self.assertIn("message_count", body)
+        self.assertGreaterEqual(body["user_count"], 2)
+        self.assertGreaterEqual(body["session_count"], 1)
+        self.assertGreaterEqual(body["message_count"], 1)

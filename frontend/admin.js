@@ -32,6 +32,20 @@ async function loadLogs() {
   });
 }
 
+async function loadOverview() {
+  if (!adminToken) return;
+  const res = await fetch(`${ADMIN_API_BASE}/admin/overview?token=${encodeURIComponent(adminToken)}`);
+  const data = await res.json();
+  const box = document.getElementById("overview-box");
+  box.innerHTML = "";
+  Object.entries(data).forEach(([key, value]) => {
+    const node = document.createElement("article");
+    node.className = "message-card";
+    node.innerHTML = `<h4>${key}</h4><p>${value}</p>`;
+    box.appendChild(node);
+  });
+}
+
 async function loadConfig() {
   if (!adminToken) return;
   const res = await fetch(`${ADMIN_API_BASE}/admin/config?token=${encodeURIComponent(adminToken)}`);
@@ -60,6 +74,7 @@ async function updateConfig() {
 }
 
 document.getElementById("admin-login-btn").addEventListener("click", adminLogin);
+document.getElementById("load-overview-btn").addEventListener("click", loadOverview);
 document.getElementById("load-logs-btn").addEventListener("click", loadLogs);
 document.getElementById("load-config-btn").addEventListener("click", loadConfig);
 document.getElementById("update-config-btn").addEventListener("click", updateConfig);
