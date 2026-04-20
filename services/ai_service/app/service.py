@@ -1,8 +1,10 @@
 from __future__ import annotations
 
+import json
 import os
 import secrets
 from typing import Dict
+from urllib.request import Request, urlopen
 
 from .models import ChatResponse, HistoryResponse, LogEntry, TokenState
 from .repository import InMemoryRepository
@@ -10,11 +12,61 @@ from .repository import InMemoryRepository
 
 class DemoModelClient:
     def answer(self, message: str, username: str, config: Dict[str, str]) -> str:
+        remote_answer = self._try_remote_answer(message, username, config)
+        if remote_answer:
+            return remote_answer
+
         model_name = config.get("model_name", "demo-llm")
         return (
             f"[{model_name}] 已收到来自 {username} 的问题：{message}。"
             "这是第一版演示回答，后续可替换为真实大语言模型接口。"
         )
+
+    def _try_remote_answer(
+        self, message: str, username: str, config: Dict[str, str]
+    ) -> str | None:
+        api_url = os.getenv("LLM_API_URL", "").strip()
+        api_key = os.getenv("LLM_API_KEY", "").strip()
+        model_name = os.getenv("LLM_MODEL_NAME", config.get("model_name", "demo-llm"))
+        if not api_url:
+            return None
+
+        payload = {
+            "model": model_name,
+            "messages": [
+                {
+                    "role": "system",
+                    "content": "你是一个用于毕业设计演示的智能问答助手，请用简洁、专业的中文回答。",
+                },
+                {
+                    "role": "user",
+                    "content": f"用户 {username} 的问题是：{message}",
+                },
+            ],
+        }
+        headers = {"Content-Type": "application/json"}
+        if api_key:
+            headers["Authorization"] = f"Bearer {api_key}"
+
+        request = Request(
+            api_url,
+            data=json.dumps(payload).encode("utf-8"),
+            headers=headers,
+            method="POST",
+        )
+
+        try:
+            with urlopen(request, timeout=20) as response:
+                body = json.loads(response.read().decode("utf-8"))
+            return (
+                body.get("choices", [{}])[0]
+                .get("message", {})
+                .get("content", "")
+                .strip()
+                or None
+            )
+        except Exception:
+            return None
 
 
 class AppService:

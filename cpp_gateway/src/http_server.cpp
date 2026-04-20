@@ -90,29 +90,95 @@ void HttpServer::HandleClient(int client_fd) {
     }
 
     std::string request(buffer, bytes);
+    const auto request_line_end = request.find("\r\n");
+    if (request_line_end == std::string::npos) {
+        const std::string error = BuildErrorResponse("invalid request line");
+        send(client_fd, error.c_str(), error.size(), 0);
+        close(client_fd);
+        return;
+    }
+
+    const std::string request_line = request.substr(0, request_line_end);
+    const auto method_end = request_line.find(' ');
+    const auto path_end = request_line.find(' ', method_end + 1);
+    if (method_end == std::string::npos || path_end == std::string::npos) {
+        const std::string error = BuildErrorResponse("invalid request format");
+        send(client_fd, error.c_str(), error.size(), 0);
+        close(client_fd);
+        return;
+    }
+
+    const std::string method = request_line.substr(0, method_end);
+    const std::string path = request_line.substr(method_end + 1, path_end - method_end - 1);
     const auto pos = request.find("\r\n\r\n");
     std::string body = pos == std::string::npos ? "{}" : request.substr(pos + 4);
-    std::string upstream_response = ForwardToUpstream(body);
-    std::string response = BuildHttpResponse(upstream_response);
+    if (method != "POST" && method != "GET") {
+        const std::string error = BuildErrorResponse("only GET and POST are supported");
+        send(client_fd, error.c_str(), error.size(), 0);
+        close(client_fd);
+        return;
+    }
+
+    std::string response = ForwardToUpstream(path, body);
     send(client_fd, response.c_str(), response.size(), 0);
     close(client_fd);
 }
 
-std::string HttpServer::ForwardToUpstream(const std::string &body) const {
-    std::ostringstream json;
-    json << "{"
-         << "\"gateway\":\"cpp\","
-         << "\"forwarded_body\":" << "\"" << body << "\""
-         << "}";
-    return json.str();
+std::string HttpServer::ForwardToUpstream(const std::string &path, const std::string &body) const {
+    int upstream_fd = socket(AF_INET, SOCK_STREAM, 0);
+    if (upstream_fd < 0) {
+        return BuildErrorResponse("failed to create upstream socket");
+    }
+
+    sockaddr_in upstream_addr{};
+    upstream_addr.sin_family = AF_INET;
+    upstream_addr.sin_port = htons(upstream_port_);
+    if (inet_pton(AF_INET, upstream_host_.c_str(), &upstream_addr.sin_addr) <= 0) {
+        close(upstream_fd);
+        return BuildErrorResponse("invalid upstream host");
+    }
+
+    if (connect(upstream_fd, reinterpret_cast<sockaddr *>(&upstream_addr), sizeof(upstream_addr)) < 0) {
+        close(upstream_fd);
+        return BuildErrorResponse("failed to connect upstream");
+    }
+
+    std::ostringstream req;
+    req << "POST " << path << " HTTP/1.1\r\n";
+    req << "Host: " << upstream_host_ << ":" << upstream_port_ << "\r\n";
+    req << "Content-Type: application/json\r\n";
+    req << "Content-Length: " << body.size() << "\r\n";
+    req << "Connection: close\r\n\r\n";
+    req << body;
+    const std::string raw_request = req.str();
+    send(upstream_fd, raw_request.c_str(), raw_request.size(), 0);
+
+    std::string response;
+    char response_buffer[kBufferSize];
+    while (true) {
+        const int received = recv(upstream_fd, response_buffer, sizeof(response_buffer), 0);
+        if (received <= 0) {
+            break;
+        }
+        response.append(response_buffer, received);
+    }
+    close(upstream_fd);
+
+    if (response.empty()) {
+        return BuildErrorResponse("empty upstream response");
+    }
+    return response;
 }
 
-std::string HttpServer::BuildHttpResponse(const std::string &json_body) const {
+std::string HttpServer::BuildErrorResponse(const std::string &message) const {
+    std::ostringstream json;
+    json << "{\"error\":\"" << message << "\"}";
+
     std::ostringstream stream;
-    stream << "HTTP/1.1 200 OK\r\n";
+    stream << "HTTP/1.1 502 Bad Gateway\r\n";
     stream << "Content-Type: application/json; charset=utf-8\r\n";
-    stream << "Content-Length: " << json_body.size() << "\r\n";
+    stream << "Content-Length: " << json.str().size() << "\r\n";
     stream << "Connection: close\r\n\r\n";
-    stream << json_body;
+    stream << json.str();
     return stream.str();
 }

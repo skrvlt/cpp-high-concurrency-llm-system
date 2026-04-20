@@ -32,14 +32,14 @@
 
 - `models.py`：请求、响应和领域模型
 - `repository.py`：内存仓储
-- `service.py`：认证、问答和日志业务
+- `service.py`：认证、问答、日志业务，以及“远程模型调用/本地演示回退”逻辑
 - `api.py`：FastAPI 路由
 - `main.py`：应用入口
 
 ### cpp_gateway
 
 - `main.cpp`：程序入口
-- `http_server.cpp`：epoll 事件循环、解析和转发
+- `http_server.cpp`：epoll 事件循环、HTTP 请求解析和上游转发
 - `thread_pool.h`：简化线程池
 - `http_server.h`：网关接口
 

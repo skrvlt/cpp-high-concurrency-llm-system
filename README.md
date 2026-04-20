@@ -48,5 +48,8 @@ python -m http.server 5500
 ## 说明
 
 - Python 服务默认使用内存仓储，方便本地演示与测试。
+- Python 服务支持两种模型模式：
+  - 默认演示模式：未配置环境变量时返回可控的演示回答
+  - 真实接口模式：配置 `LLM_API_URL`、`LLM_API_KEY`、`LLM_MODEL_NAME` 后调用远程大模型
 - 如果补充 MySQL 连接层，可直接复用 `db/schema.sql`。
-- C++ 网关面向 Linux 环境，当前仓库给出完整骨架、转发流程和编译说明。
+- C++ 网关面向 Linux 环境，当前仓库给出完整骨架、基础 HTTP 解析、线程池和向 Python 服务的转发逻辑。
