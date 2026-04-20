@@ -11,6 +11,16 @@
     <section class="panel auth-panel">
       <h1>智能交互系统</h1>
       <p class="subtitle">基于 C++ 高并发架构与语言大模型的交互系统</p>
+      <div class="demo-grid">
+        <article class="demo-card">
+          <h3>演示亮点</h3>
+          <p>支持 C++ 接入层、Python 智能服务层和多轮问答历史展示。</p>
+        </article>
+        <article class="demo-card">
+          <h3>答辩建议</h3>
+          <p>先登录，再提问，最后展示历史记录和管理员系统概览。</p>
+        </article>
+      </div>
       <div class="form-row">
         <label>用户名</label>
         <input id="username" value="student">
@@ -28,6 +38,10 @@
       <div class="panel-header">
         <h2>多轮问答</h2>
         <button id="load-history-btn">刷新历史</button>
+      </div>
+      <div class="session-title">
+        <span>当前会话标题</span>
+        <strong id="session-title-value">未生成</strong>
       </div>
       <div id="chat-log" class="chat-log"></div>
       <div class="form-row">

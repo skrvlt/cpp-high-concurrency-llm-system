@@ -58,6 +58,7 @@ async function loadHistory() {
   const data = await res.json();
   const box = document.getElementById("history-list");
   box.innerHTML = "";
+  document.getElementById("session-title-value").textContent = data.title || "未生成";
   (data.messages || []).forEach((item, index) => {
     const node = document.createElement("article");
     node.className = "message-card";
