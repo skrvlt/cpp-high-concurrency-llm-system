@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>管理员控制台</title>
+  <link rel="stylesheet" href="./styles.css">
+</head>
+<body>
+  <main class="layout admin-layout">
+    <section class="panel">
+      <h1>管理员控制台</h1>
+      <div class="form-row">
+        <label>管理员用户名</label>
+        <input id="admin-username" value="admin">
+      </div>
+      <div class="form-row">
+        <label>密码</label>
+        <input id="admin-password" type="password" value="admin123">
+      </div>
+      <button id="admin-login-btn">登录管理端</button>
+      <p id="admin-auth-status" class="status"></p>
+    </section>
+
+    <section class="panel">
+      <div class="panel-header">
+        <h2>系统日志</h2>
+        <button id="load-logs-btn">加载日志</button>
+      </div>
+      <div id="logs-box" class="history-list"></div>
+    </section>
+
+    <section class="panel">
+      <div class="panel-header">
+        <h2>系统配置</h2>
+        <button id="load-config-btn">加载配置</button>
+      </div>
+      <div id="config-box" class="history-list"></div>
+      <div class="form-row">
+        <label>配置键</label>
+        <input id="config-key" value="model_name">
+      </div>
+      <div class="form-row">
+        <label>配置值</label>
+        <input id="config-value" value="demo-llm">
+      </div>
+      <button id="update-config-btn">更新配置</button>
+    </section>
+  </main>
+  <script src="./admin.js"></script>
+</body>
+</html>

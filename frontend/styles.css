@@ -1,0 +1,123 @@
+:root {
+  --bg: #f1ede5;
+  --panel: #fffaf2;
+  --line: #d8ccb8;
+  --text: #2d2a24;
+  --muted: #6b655a;
+  --brand: #8f4f2a;
+  --brand-strong: #5e2e14;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: "Microsoft YaHei", sans-serif;
+  background:
+    radial-gradient(circle at top left, rgba(143, 79, 42, 0.18), transparent 30%),
+    linear-gradient(135deg, #ece5d8, #f7f2e9 48%, #e6ddcf);
+  color: var(--text);
+  min-height: 100vh;
+}
+
+.layout {
+  width: min(1280px, calc(100vw - 32px));
+  margin: 24px auto;
+  display: grid;
+  gap: 20px;
+  grid-template-columns: 320px 1fr 320px;
+}
+
+.admin-layout {
+  grid-template-columns: repeat(3, 1fr);
+}
+
+.panel {
+  background: rgba(255, 250, 242, 0.92);
+  border: 1px solid var(--line);
+  border-radius: 20px;
+  padding: 20px;
+  box-shadow: 0 12px 30px rgba(68, 45, 20, 0.08);
+  backdrop-filter: blur(8px);
+}
+
+.subtitle,
+.hint,
+.status {
+  color: var(--muted);
+}
+
+.panel-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.form-row {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 14px 0;
+}
+
+input,
+textarea,
+button {
+  font: inherit;
+}
+
+input,
+textarea {
+  width: 100%;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 12px;
+  background: #fffdf9;
+}
+
+button {
+  border: none;
+  border-radius: 12px;
+  padding: 12px 16px;
+  background: linear-gradient(135deg, var(--brand), var(--brand-strong));
+  color: white;
+  cursor: pointer;
+}
+
+.chat-log,
+.history-list {
+  min-height: 280px;
+  max-height: 520px;
+  overflow: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 12px;
+  border: 1px dashed var(--line);
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.7);
+}
+
+.message-card {
+  border-radius: 14px;
+  padding: 12px;
+  background: #fff;
+  border: 1px solid rgba(143, 79, 42, 0.16);
+}
+
+.message-card h4 {
+  margin: 0 0 8px;
+}
+
+a {
+  color: var(--brand-strong);
+}
+
+@media (max-width: 1080px) {
+  .layout,
+  .admin-layout {
+    grid-template-columns: 1fr;
+  }
+}
