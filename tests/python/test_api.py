@@ -9,6 +9,17 @@ client = TestClient(app)
 
 
 class ApiTests(unittest.TestCase):
+    def test_health_endpoint_returns_runtime_contract(self):
+        response = client.get("/api/health")
+
+        self.assertEqual(200, response.status_code)
+        body = response.json()
+        self.assertEqual("ok", body["status"])
+        self.assertEqual("ai_service", body["service"])
+        self.assertIn(body["runtime_mode"], {"demo", "remote"})
+        self.assertIn("model_name", body)
+        self.assertIn("session_count", body)
+
     def test_http_login_and_chat(self):
         login = client.post(
             "/api/login", json={"username": "admin", "password": "admin123"}

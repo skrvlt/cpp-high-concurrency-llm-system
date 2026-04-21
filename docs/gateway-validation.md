@@ -2,6 +2,11 @@
 
 该文档用于指导 Linux / WSL 环境下的 C++ epoll 网关验证。
 
+## 前置检查
+
+- 参考根目录 `.env.example` 确认 Python 服务端口和网关端口约定
+- 先直接访问 `http://127.0.0.1:8000/api/health`，确认 Python 服务状态正常
+
 ## 目标
 
 验证以下内容：
@@ -17,7 +22,8 @@
 1. 启动 Python 服务
 2. 启动前端静态服务
 3. 编译并启动 C++ 网关
-4. 使用浏览器的 `?mode=gateway` 或 curl 执行验证
+4. 执行 `bash scripts/verify_runtime.sh gateway`
+5. 使用浏览器的 `?mode=gateway` 或 curl 执行补充验证
 
 ## 关键验证命令
 
@@ -45,6 +51,7 @@ curl "http://127.0.0.1:8080/api/history?token=<token>"
 
 ## 结果要求
 
+- `/api/health` 能通过网关返回服务状态
 - 网关可成功转发 `/api/chat`
 - `/api/history` 返回会话标题和消息列表
 - 当 Python 服务关闭时，网关返回 `502 Bad Gateway` 风格错误响应

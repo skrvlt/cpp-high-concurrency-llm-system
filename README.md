@@ -38,6 +38,17 @@
 - C++ 网关：`8080`
 - 前端静态服务：默认 `5500`
 
+## 环境变量模板
+
+项目根目录提供 `.env.example`，用于统一约定模型接口地址、运行端口和网关参数。
+
+- `LLM_API_URL`
+- `LLM_API_KEY`
+- `LLM_MODEL_NAME`
+- `API_PORT`
+- `FRONTEND_PORT`
+- `GATEWAY_PORT`
+
 ## 运行方式
 
 ### Windows
@@ -45,6 +56,7 @@
 ```powershell
 .\scripts\start_api.ps1
 .\scripts\start_frontend.ps1
+.\scripts\verify_runtime.ps1 -Mode direct
 ```
 
 前端默认直连 Python 服务：
@@ -58,12 +70,23 @@
 bash scripts/start_api.sh
 bash scripts/start_frontend.sh
 bash scripts/build_gateway_wsl.sh
+bash scripts/verify_runtime.sh direct
 ```
 
 如果需要通过网关访问前端，可使用：
 
 - `http://127.0.0.1:5500/frontend/index.html?mode=gateway`
 - `http://127.0.0.1:5500/frontend/admin.html?mode=gateway`
+
+网关模式验证命令：
+
+```bash
+bash scripts/verify_runtime.sh gateway
+```
+
+## 健康检查接口
+
+统一健康检查接口为 `/api/health`，返回服务状态、运行模式、模型名称和会话数量，可用于三类环境下的最小可运行验证。
 
 ## 真实大模型接口
 

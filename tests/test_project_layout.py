@@ -18,11 +18,14 @@ class ProjectLayoutTests(unittest.TestCase):
         required = [
             root / "docs" / "platform-support.md",
             root / "docs" / "gateway-validation.md",
+            root / ".env.example",
             root / "scripts" / "start_api.ps1",
             root / "scripts" / "start_frontend.ps1",
             root / "scripts" / "start_api.sh",
             root / "scripts" / "start_frontend.sh",
             root / "scripts" / "build_gateway_wsl.sh",
+            root / "scripts" / "verify_runtime.ps1",
+            root / "scripts" / "verify_runtime.sh",
             root / "scripts" / "verify_gateway_smoke.ps1",
             root / "scripts" / "verify_gateway_smoke.sh",
         ]

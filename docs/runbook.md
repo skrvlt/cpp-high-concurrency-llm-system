@@ -14,6 +14,10 @@
 - C++ 网关：`8080`
 - 前端静态服务：`5500`
 
+## 环境变量模板
+
+项目根目录提供 `.env.example`。建议先按该文件统一模型接口地址和端口参数，再启动服务。
+
 ## Windows 运行
 
 ### 1. 启动 Python 服务
@@ -21,6 +25,14 @@
 ```powershell
 .\scripts\start_api.ps1
 ```
+
+服务启动后可执行：
+
+```powershell
+.\scripts\verify_runtime.ps1 -Mode direct
+```
+
+用于验证 `/api/health`、登录和问答主链路。
 
 ### 2. 启动前端静态服务
 
@@ -41,6 +53,14 @@
 bash scripts/start_api.sh
 ```
 
+服务启动后可执行：
+
+```bash
+bash scripts/verify_runtime.sh direct
+```
+
+用于验证 `/api/health`、登录和问答主链路。
+
 ### 2. 启动前端静态服务
 
 ```bash
@@ -60,7 +80,13 @@ cd cpp_gateway/build
 ./llm_gateway
 ```
 
-### 5. 通过网关访问前端
+### 5. 通过网关验证运行链路
+
+```bash
+bash scripts/verify_runtime.sh gateway
+```
+
+### 6. 通过网关访问前端
 
 - `http://127.0.0.1:5500/frontend/index.html?mode=gateway`
 - `http://127.0.0.1:5500/frontend/admin.html?mode=gateway`
@@ -84,6 +110,16 @@ export LLM_MODEL_NAME="your-model-name"
 ```
 
 未配置时，系统自动回退到演示模式，适合答辩和离线展示。
+
+## 健康检查约定
+
+统一健康检查接口为 `/api/health`，返回字段包括：
+
+- `status`
+- `service`
+- `runtime_mode`
+- `model_name`
+- `session_count`
 
 ## 支持边界
 

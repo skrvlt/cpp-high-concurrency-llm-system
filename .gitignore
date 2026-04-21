@@ -27,6 +27,7 @@ cmake-build-*/
 *.log
 tmp/
 temp/
+backups/
 
 # OS files
 .DS_Store

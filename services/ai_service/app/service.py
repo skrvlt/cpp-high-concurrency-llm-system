@@ -192,5 +192,18 @@ class AppService:
             "model_name": self.repository.get_config().get("model_name", "demo-llm"),
         }
 
+    def health(self) -> Dict[str, int | str]:
+        config = self.repository.get_config()
+        runtime_mode = "remote" if os.getenv("LLM_API_URL", "").strip() else "demo"
+        return {
+            "status": "ok",
+            "service": "ai_service",
+            "runtime_mode": runtime_mode,
+            "model_name": os.getenv(
+                "LLM_MODEL_NAME", config.get("model_name", "demo-llm")
+            ),
+            "session_count": len(self.repository.list_sessions()),
+        }
+
 
 service = AppService()

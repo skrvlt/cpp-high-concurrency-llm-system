@@ -54,3 +54,17 @@ class DocsTests(unittest.TestCase):
             self.assertIn("Windows", text)
             self.assertIn("Linux", text)
             self.assertIn("WSL", text)
+
+    def test_docs_mention_health_contract_and_env_examples(self):
+        readme = (Path.cwd() / "README.md").read_text(encoding="utf-8")
+        runbook = (Path.cwd() / "docs" / "runbook.md").read_text(encoding="utf-8")
+        platform_doc = (Path.cwd() / "docs" / "platform-support.md").read_text(
+            encoding="utf-8"
+        )
+        thesis = (Path.cwd() / "output" / "doc" / "毕业设计说明书初稿.md").read_text(
+            encoding="utf-8"
+        )
+        for text in [readme, runbook, platform_doc, thesis]:
+            self.assertIn("/api/health", text)
+        for text in [readme, runbook, platform_doc]:
+            self.assertIn(".env.example", text)
