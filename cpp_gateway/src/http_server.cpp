@@ -15,6 +15,17 @@
 namespace {
 constexpr int kMaxEvents = 64;
 constexpr int kBufferSize = 8192;
+std::string JsonEscape(const std::string &input) {
+    std::string output;
+    output.reserve(input.size());
+    for (char ch : input) {
+        if (ch == '"' || ch == '\\') {
+            output.push_back('\\');
+        }
+        output.push_back(ch);
+    }
+    return output;
+}
 }
 
 HttpServer::HttpServer(int port, std::string upstream_host, int upstream_port)
@@ -119,12 +130,15 @@ void HttpServer::HandleClient(int client_fd) {
         return;
     }
 
-    std::string response = ForwardToUpstream(path, body);
+    std::string response = ForwardToUpstream(method, path, body);
     send(client_fd, response.c_str(), response.size(), 0);
     close(client_fd);
 }
 
-std::string HttpServer::ForwardToUpstream(const std::string &path, const std::string &body) const {
+std::string HttpServer::ForwardToUpstream(
+    const std::string &method,
+    const std::string &path,
+    const std::string &body) const {
     int upstream_fd = socket(AF_INET, SOCK_STREAM, 0);
     if (upstream_fd < 0) {
         return BuildErrorResponse("failed to create upstream socket");
@@ -144,12 +158,18 @@ std::string HttpServer::ForwardToUpstream(const std::string &path, const std::st
     }
 
     std::ostringstream req;
-    req << "POST " << path << " HTTP/1.1\r\n";
+    req << method << " " << path << " HTTP/1.1\r\n";
     req << "Host: " << upstream_host_ << ":" << upstream_port_ << "\r\n";
-    req << "Content-Type: application/json\r\n";
-    req << "Content-Length: " << body.size() << "\r\n";
+    if (method == "POST") {
+        req << "Content-Type: application/json\r\n";
+        req << "Content-Length: " << body.size() << "\r\n";
+    } else {
+        req << "Content-Length: 0\r\n";
+    }
     req << "Connection: close\r\n\r\n";
-    req << body;
+    if (method == "POST") {
+        req << body;
+    }
     const std::string raw_request = req.str();
     send(upstream_fd, raw_request.c_str(), raw_request.size(), 0);
 
@@ -172,7 +192,7 @@ std::string HttpServer::ForwardToUpstream(const std::string &path, const std::st
 
 std::string HttpServer::BuildErrorResponse(const std::string &message) const {
     std::ostringstream json;
-    json << "{\"error\":\"" << message << "\"}";
+    json << "{\"error\":\"" << JsonEscape(message) << "\"}";
 
     std::ostringstream stream;
     stream << "HTTP/1.1 502 Bad Gateway\r\n";

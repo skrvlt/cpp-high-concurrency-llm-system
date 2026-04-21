@@ -16,6 +16,9 @@ private:
     ThreadPool pool_;
 
     void HandleClient(int client_fd);
-    std::string ForwardToUpstream(const std::string &path, const std::string &body) const;
+    std::string ForwardToUpstream(
+        const std::string &method,
+        const std::string &path,
+        const std::string &body) const;
     std::string BuildErrorResponse(const std::string &message) const;
 };
