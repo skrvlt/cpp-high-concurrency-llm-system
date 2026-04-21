@@ -22,3 +22,6 @@ class CppGatewayLayoutTests(unittest.TestCase):
         self.assertIn("Linux", readme)
         self.assertIn("8080", validation)
         self.assertIn("/api/chat", validation)
+        self.assertIn("/api/health", validation)
+        self.assertIn("GATEWAY_PORT", readme)
+        self.assertIn("UPSTREAM_PORT", readme)

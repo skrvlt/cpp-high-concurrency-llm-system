@@ -6,4 +6,4 @@ mkdir -p build
 cd build
 cmake ..
 make
-echo "Gateway build completed. Run ./llm_gateway to start the epoll gateway on port 8080."
+echo "Gateway build completed. Use ../scripts/start_gateway_wsl.sh or run ./llm_gateway with GATEWAY_PORT / UPSTREAM_HOST / UPSTREAM_PORT."

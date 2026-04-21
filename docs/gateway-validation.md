@@ -6,6 +6,7 @@
 
 - 参考根目录 `.env.example` 确认 Python 服务端口和网关端口约定
 - 先直接访问 `http://127.0.0.1:8000/api/health`，确认 Python 服务状态正常
+- 如需改变默认转发地址，可设置 `GATEWAY_PORT`、`UPSTREAM_HOST`、`UPSTREAM_PORT`
 
 ## 目标
 
@@ -24,6 +25,12 @@
 3. 编译并启动 C++ 网关
 4. 执行 `bash scripts/verify_runtime.sh gateway`
 5. 使用浏览器的 `?mode=gateway` 或 curl 执行补充验证
+
+推荐直接执行：
+
+```bash
+bash scripts/start_gateway_wsl.sh
+```
 
 ## 关键验证命令
 

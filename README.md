@@ -48,6 +48,8 @@
 - `API_PORT`
 - `FRONTEND_PORT`
 - `GATEWAY_PORT`
+- `UPSTREAM_HOST`
+- `UPSTREAM_PORT`
 
 ## 运行方式
 
@@ -70,6 +72,7 @@
 bash scripts/start_api.sh
 bash scripts/start_frontend.sh
 bash scripts/build_gateway_wsl.sh
+bash scripts/start_gateway_wsl.sh
 bash scripts/verify_runtime.sh direct
 ```
 
@@ -82,6 +85,7 @@ bash scripts/verify_runtime.sh direct
 
 ```bash
 bash scripts/verify_runtime.sh gateway
+bash scripts/verify_gateway_smoke.sh
 ```
 
 ## 健康检查接口

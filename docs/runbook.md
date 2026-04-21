@@ -18,6 +18,12 @@
 
 项目根目录提供 `.env.example`。建议先按该文件统一模型接口地址和端口参数，再启动服务。
 
+网关相关参数包括：
+
+- `GATEWAY_PORT`
+- `UPSTREAM_HOST`
+- `UPSTREAM_PORT`
+
 ## Windows 运行
 
 ### 1. 启动 Python 服务
@@ -76,14 +82,14 @@ bash scripts/build_gateway_wsl.sh
 ### 4. 启动 C++ 网关
 
 ```bash
-cd cpp_gateway/build
-./llm_gateway
+bash scripts/start_gateway_wsl.sh
 ```
 
 ### 5. 通过网关验证运行链路
 
 ```bash
 bash scripts/verify_runtime.sh gateway
+bash scripts/verify_gateway_smoke.sh
 ```
 
 ### 6. 通过网关访问前端
