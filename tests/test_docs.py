@@ -2,9 +2,48 @@ import unittest
 from pathlib import Path
 import zipfile
 from docx import Document
+from docx.oxml.ns import qn
 
 
 class DocsTests(unittest.TestCase):
+    def _unique_row_cells(self, row):
+        cells = []
+        seen = set()
+        for cell in row.cells:
+            marker = id(cell._tc)
+            if marker not in seen:
+                seen.add(marker)
+                cells.append(cell)
+        return cells
+
+    def _border_value(self, cell, side):
+        tc_pr = cell._tc.get_or_add_tcPr()
+        borders = tc_pr.find(qn("w:tcBorders"))
+        if borders is None:
+            return None
+        border = borders.find(qn(f"w:{side}"))
+        if border is None:
+            return None
+        return border.get(qn("w:val"))
+
+    def assert_open_sided_table_borders(self, table):
+        table_xml = table._tbl.xml
+        self.assertNotIn('w:tblStyle w:val="TableGrid"', table_xml)
+        for row in table.rows:
+            cells = self._unique_row_cells(row)
+            if not cells:
+                continue
+            self.assertEqual(self._border_value(cells[0], "left"), "nil")
+            self.assertEqual(self._border_value(cells[0], "start"), "nil")
+            self.assertEqual(self._border_value(cells[-1], "right"), "nil")
+            self.assertEqual(self._border_value(cells[-1], "end"), "nil")
+
+            for left_cell, right_cell in zip(cells, cells[1:]):
+                self.assertEqual(self._border_value(left_cell, "right"), "single")
+                self.assertEqual(self._border_value(left_cell, "end"), "single")
+                self.assertEqual(self._border_value(right_cell, "left"), "single")
+                self.assertEqual(self._border_value(right_cell, "start"), "single")
+
     def test_thesis_contains_required_sections(self):
         text = (Path.cwd() / "output" / "doc" / "毕业设计说明书初稿.md").read_text(
             encoding="utf-8"
@@ -119,19 +158,28 @@ class DocsTests(unittest.TestCase):
 
     def test_generated_doc_use_case_tables_remove_outer_borders(self):
         docx_path = Path.cwd() / "output" / "doc" / "毕业设计说明书初稿.docx"
-        with zipfile.ZipFile(docx_path) as zf:
-            xml = zf.read("word/document.xml").decode("utf-8")
-        self.assertIn('w:left w:val="nil"', xml)
-        self.assertIn('w:right w:val="nil"', xml)
-        self.assertIn('w:start w:val="nil"', xml)
-        self.assertIn('w:end w:val="nil"', xml)
-        self.assertIn('w:val="single"', xml)
+        doc = Document(docx_path)
+        for table_index in [1, 3, 5]:
+            self.assert_open_sided_table_borders(doc.tables[table_index])
 
     def test_generated_doc_use_case_tables_keep_inner_vertical_lines(self):
         docx_path = Path.cwd() / "output" / "doc" / "毕业设计说明书初稿.docx"
         doc = Document(docx_path)
-        table_xml = doc.tables[1]._tbl.xml
-        self.assertIn('<w:right w:val="single"', table_xml)
-        self.assertIn('<w:left w:val="single"', table_xml)
-        self.assertIn('<w:left w:val="nil"', table_xml)
-        self.assertIn('<w:right w:val="nil"', table_xml)
+        for table_index in [1, 2, 3, 4, 5, 6]:
+            self.assert_open_sided_table_borders(doc.tables[table_index])
+
+    def test_generated_doc_table_3_1_removes_outer_borders(self):
+        docx_path = Path.cwd() / "output" / "doc" / "毕业设计说明书初稿.docx"
+        doc = Document(docx_path)
+        self.assert_open_sided_table_borders(doc.tables[0])
+
+    def test_midterm_docx_tables_3_1_to_3_4_remove_outer_borders(self):
+        docx_paths = [
+            Path.cwd() / "中期检查" / "毕业设计前三章-中期检查版.docx",
+            Path.cwd() / "中期检查" / "毕业设计前三章-中期检查版-格式整理副本.docx",
+        ]
+        for docx_path in docx_paths:
+            doc = Document(docx_path)
+            for table_index in range(7):
+                with self.subTest(docx=docx_path.name, table_index=table_index):
+                    self.assert_open_sided_table_borders(doc.tables[table_index])

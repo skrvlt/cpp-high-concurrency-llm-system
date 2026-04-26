@@ -224,14 +224,11 @@ def _set_table_border(table, side: str, value: str | None = None, size: int = 4)
     border.set(qn("w:color"), "auto")
 
 
-def _remove_outer_vertical_borders(table):
-    for side in ("left", "right", "start", "end"):
-        _set_table_border(table, side, None)
-    for row in table.rows:
-        if not row.cells:
-            continue
-        _set_cell_border(row.cells[0], "left", None)
-        _set_cell_border(row.cells[-1], "right", None)
+def _clear_table_style(table):
+    tbl_pr = table._tbl.tblPr
+    tbl_style = tbl_pr.find(qn("w:tblStyle"))
+    if tbl_style is not None:
+        tbl_pr.remove(tbl_style)
 
 
 def _iter_unique_cells(row):
@@ -246,22 +243,40 @@ def _iter_unique_cells(row):
     return cells
 
 
-def _apply_use_case_table_borders(table):
-    _remove_outer_vertical_borders(table)
+def _clear_vertical_borders(cell):
+    for side in ("left", "right", "start", "end"):
+        _set_cell_border(cell, side, None)
+
+
+def _set_left_boundary(cell, value: str | None):
+    for side in ("left", "start"):
+        _set_cell_border(cell, side, value)
+
+
+def _set_right_boundary(cell, value: str | None):
+    for side in ("right", "end"):
+        _set_cell_border(cell, side, value)
+
+
+def _apply_open_sided_table_borders(table):
+    _clear_table_style(table)
+    for side in ("left", "right", "start", "end"):
+        _set_table_border(table, side, None)
+
     for row in table.rows:
         unique_cells = _iter_unique_cells(row)
         for cell in unique_cells:
             for side in ("top", "bottom"):
                 _set_cell_border(cell, side, "single")
-            for side in ("left", "right"):
-                _set_cell_border(cell, side, None)
+            _clear_vertical_borders(cell)
 
-        if len(unique_cells) >= 2:
-            _set_cell_border(unique_cells[0], "right", "single")
-            _set_cell_border(unique_cells[1], "left", "single")
-        if len(unique_cells) >= 3:
-            _set_cell_border(unique_cells[1], "right", "single")
-            _set_cell_border(unique_cells[2], "left", "single")
+        for left_cell, right_cell in zip(unique_cells, unique_cells[1:]):
+            _set_right_boundary(left_cell, "single")
+            _set_left_boundary(right_cell, "single")
+
+        if unique_cells:
+            _set_left_boundary(unique_cells[0], None)
+            _set_right_boundary(unique_cells[-1], None)
 
 
 def add_use_case_table(doc: Document, block: UseCaseBlock):
@@ -309,7 +324,7 @@ def add_use_case_table(doc: Document, block: UseCaseBlock):
             merged = merged.merge(row.cells[0])
         _set_cell_text(merged, section_name)
 
-    _apply_use_case_table_borders(table)
+    _apply_open_sided_table_borders(table)
 
     if block.exception_flow:
         ext_table = doc.add_table(rows=0, cols=3)
@@ -322,7 +337,7 @@ def add_use_case_table(doc: Document, block: UseCaseBlock):
             _set_cell_text(row.cells[0], "")
             _set_cell_text(row.cells[1], f"{index}a")
             _set_cell_text(row.cells[2], item, align="left")
-        _apply_use_case_table_borders(ext_table)
+        _apply_open_sided_table_borders(ext_table)
 
 
 def parse_use_case_block(caption: str, raw_lines: list[str]) -> UseCaseBlock:
@@ -378,11 +393,11 @@ def _parse_markdown_row(line: str) -> list[str]:
 
 def add_markdown_table(doc: Document, rows: list[list[str]]):
     table = doc.add_table(rows=0, cols=len(rows[0]))
-    table.style = "Table Grid"
     for row_index, row_data in enumerate(rows):
         row = table.add_row()
         for cell, value in zip(row.cells, row_data):
             _set_cell_text(cell, value, bold=(row_index == 0), align="center" if row_index == 0 else "left")
+    _apply_open_sided_table_borders(table)
 
 
 def _add_toc_entry(doc: Document, text: str, page: str, level: int = 1, english: bool = False):
