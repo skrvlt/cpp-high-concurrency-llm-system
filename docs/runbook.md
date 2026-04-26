@@ -79,6 +79,8 @@ bash scripts/start_frontend.sh
 bash scripts/build_gateway_wsl.sh
 ```
 
+如果 WSL / Linux 环境中缺少 `cmake`，脚本会自动回退到 `g++` 直接编译，不需要手工改命令。
+
 ### 4. 启动 C++ 网关
 
 ```bash
@@ -91,6 +93,28 @@ bash scripts/start_gateway_wsl.sh
 bash scripts/verify_runtime.sh gateway
 bash scripts/verify_gateway_smoke.sh
 ```
+
+如果希望在单个 WSL 会话里自动完成构建、启动、验证和清理，推荐直接执行：
+
+```bash
+bash scripts/validate_gateway_wsl.sh
+```
+
+默认推荐：
+
+```bash
+API_MODE=local bash scripts/validate_gateway_wsl.sh
+```
+
+这会在 WSL 内部启动 Python API，再完成网关验证，避免部分机器上 WSL 无法访问 Windows 本机服务的问题。
+
+如果 WSL 中缺少 `fastapi`、`uvicorn`、`pydantic` 等依赖，可先执行：
+
+```bash
+bash scripts/setup_wsl_python.sh
+```
+
+该脚本会创建项目内的 `.venv-wsl` 虚拟环境，避免 Ubuntu 系统 Python 的 `PEP 668` 安装限制。
 
 ### 6. 通过网关访问前端
 

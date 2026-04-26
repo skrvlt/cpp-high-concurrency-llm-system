@@ -25,3 +25,7 @@ class CppGatewayLayoutTests(unittest.TestCase):
         self.assertIn("/api/health", validation)
         self.assertIn("GATEWAY_PORT", readme)
         self.assertIn("UPSTREAM_PORT", readme)
+        self.assertIn("cmake", readme)
+        self.assertIn("g++", readme)
+        self.assertIn("validate_gateway_wsl.sh", validation)
+        self.assertIn("API_MODE", validation)

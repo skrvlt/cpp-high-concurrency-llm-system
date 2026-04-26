@@ -1,5 +1,7 @@
 import unittest
 from pathlib import Path
+import zipfile
+from docx import Document
 
 
 class DocsTests(unittest.TestCase):
@@ -68,3 +70,68 @@ class DocsTests(unittest.TestCase):
             self.assertIn("/api/health", text)
         for text in [readme, runbook, platform_doc]:
             self.assertIn(".env.example", text)
+
+    def test_docs_mention_wsl_build_fallback(self):
+        readme = (Path.cwd() / "cpp_gateway" / "README.md").read_text(encoding="utf-8")
+        runbook = (Path.cwd() / "docs" / "runbook.md").read_text(encoding="utf-8")
+        validation = (Path.cwd() / "docs" / "gateway-validation.md").read_text(
+            encoding="utf-8"
+        )
+        for text in [readme, runbook, validation]:
+            self.assertIn("cmake", text)
+            self.assertIn("g++", text)
+            self.assertIn("validate_gateway_wsl.sh", text)
+            self.assertIn("API_MODE", text)
+
+    def test_use_case_tables_are_separated_by_body_text(self):
+        lines = (Path.cwd() / "output" / "doc" / "毕业设计说明书初稿.md").read_text(
+            encoding="utf-8"
+        ).splitlines()
+        table_indices = [
+            index
+            for index, line in enumerate(lines)
+            if line.strip() in {
+                "表3-2 用户登录用例描述",
+                "表3-3 智能问答用例描述",
+                "表3-4 管理员配置维护用例描述",
+            }
+        ]
+        self.assertEqual(len(table_indices), 3)
+
+        for left, right in zip(table_indices, table_indices[1:]):
+            between = [
+                line.strip()
+                for line in lines[left + 1 : right]
+                if line.strip()
+                and line.strip() not in {"[用例表]", "[/用例表]"}
+                and not line.strip().startswith("用例")
+                and not line.strip().startswith("主参与者")
+                and not line.strip().startswith("前置条件")
+                and not line.strip().startswith("后置条件")
+                and not line.strip().startswith("基本事件流")
+                and not line.strip().startswith("异常事件流")
+                and not line.strip()[0:2].isdigit()
+            ]
+            self.assertTrue(
+                between,
+                "相邻用例描述表之间缺少说明正文",
+            )
+
+    def test_generated_doc_use_case_tables_remove_outer_borders(self):
+        docx_path = Path.cwd() / "output" / "doc" / "毕业设计说明书初稿.docx"
+        with zipfile.ZipFile(docx_path) as zf:
+            xml = zf.read("word/document.xml").decode("utf-8")
+        self.assertIn('w:left w:val="nil"', xml)
+        self.assertIn('w:right w:val="nil"', xml)
+        self.assertIn('w:start w:val="nil"', xml)
+        self.assertIn('w:end w:val="nil"', xml)
+        self.assertIn('w:val="single"', xml)
+
+    def test_generated_doc_use_case_tables_keep_inner_vertical_lines(self):
+        docx_path = Path.cwd() / "output" / "doc" / "毕业设计说明书初稿.docx"
+        doc = Document(docx_path)
+        table_xml = doc.tables[1]._tbl.xml
+        self.assertIn('<w:right w:val="single"', table_xml)
+        self.assertIn('<w:left w:val="single"', table_xml)
+        self.assertIn('<w:left w:val="nil"', table_xml)
+        self.assertIn('<w:right w:val="nil"', table_xml)
