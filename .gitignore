@@ -6,6 +6,7 @@ __pycache__/
 
 # Virtual environments
 .venv/
+.venv-wsl/
 venv/
 env/
 
@@ -25,6 +26,10 @@ cmake-build-*/
 
 # Logs and temporary files
 *.log
+.runtime_logs/
+runtime_data/
+*.sqlite
+*.sqlite3
 tmp/
 temp/
 backups/

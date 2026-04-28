@@ -19,6 +19,7 @@ class ApiTests(unittest.TestCase):
         self.assertIn(body["runtime_mode"], {"demo", "remote"})
         self.assertIn("model_name", body)
         self.assertIn("session_count", body)
+        self.assertEqual("memory", body["storage_mode"])
 
     def test_http_login_and_chat(self):
         login = client.post(

@@ -45,11 +45,27 @@
 - `LLM_API_URL`
 - `LLM_API_KEY`
 - `LLM_MODEL_NAME`
+- `APP_STORAGE`
+- `SQLITE_DB_PATH`
 - `API_PORT`
 - `FRONTEND_PORT`
 - `GATEWAY_PORT`
 - `UPSTREAM_HOST`
 - `UPSTREAM_PORT`
+
+## Python 依赖安装
+
+首次运行 Python 服务或测试前，在项目根目录执行：
+
+```powershell
+python -m pip install -r requirements.txt
+```
+
+Linux / WSL 下同样使用：
+
+```bash
+python -m pip install -r requirements.txt
+```
 
 ## 运行方式
 
@@ -90,7 +106,7 @@ bash scripts/verify_gateway_smoke.sh
 
 ## 健康检查接口
 
-统一健康检查接口为 `/api/health`，返回服务状态、运行模式、模型名称和会话数量，可用于三类环境下的最小可运行验证。
+统一健康检查接口为 `/api/health`，返回服务状态、运行模式、存储模式、模型名称和会话数量，可用于三类环境下的最小可运行验证。其中 `storage_mode` 用于区分当前是 `memory` 还是 `sqlite`。
 
 ## 真实大模型接口
 
@@ -99,6 +115,24 @@ bash scripts/verify_gateway_smoke.sh
 - `LLM_API_URL`
 - `LLM_API_KEY`
 - `LLM_MODEL_NAME`
+
+## 数据存储模式
+
+默认 `APP_STORAGE=memory`，适合课堂演示和快速启动；如需验证会话、日志和配置的持久化，可设置 `APP_STORAGE=sqlite`：
+
+```powershell
+$env:APP_STORAGE="sqlite"
+$env:SQLITE_DB_PATH="runtime_data/app.sqlite3"
+```
+
+Linux / WSL 下使用：
+
+```bash
+export APP_STORAGE=sqlite
+export SQLITE_DB_PATH=runtime_data/app.sqlite3
+```
+
+SQLite 模式会在本地生成运行数据库，接口契约与内存模式保持一致。
 
 ## 默认账号
 

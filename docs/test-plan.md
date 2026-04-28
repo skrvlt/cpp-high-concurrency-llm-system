@@ -9,7 +9,8 @@
 3. 历史记录是否正确保存
 4. 日志接口是否返回事件列表
 5. 配置接口是否支持查询与更新
-6. 项目关键目录与文档是否齐全
+6. SQLite 仓储是否能够持久化会话、日志和配置
+7. 项目关键目录与文档是否齐全
 
 ## 测试层次
 
@@ -17,6 +18,16 @@
 
 - `tests/python/test_service.py`
 - `tests/python/test_api.py`
+
+其中 `test_sqlite_repository_persists_sessions_config_and_logs` 用项目内临时 SQLite 文件验证持久化链路，覆盖会话消息、系统配置和日志记录。
+
+运行 Python 接口测试前需要安装依赖：
+
+```bash
+python -m pip install -r requirements.txt
+```
+
+持久化相关测试覆盖 `APP_STORAGE=sqlite`、SQLite 会话恢复、配置恢复、日志恢复，以及 `/api/health` 中的 `storage_mode` 字段。
 
 ### 结构测试
 

@@ -68,3 +68,14 @@ class DocsTests(unittest.TestCase):
             self.assertIn("/api/health", text)
         for text in [readme, runbook, platform_doc]:
             self.assertIn(".env.example", text)
+
+    def test_docs_mention_requirements_and_storage_mode(self):
+        readme = (Path.cwd() / "README.md").read_text(encoding="utf-8")
+        runbook = (Path.cwd() / "docs" / "runbook.md").read_text(encoding="utf-8")
+        test_plan = (Path.cwd() / "docs" / "test-plan.md").read_text(encoding="utf-8")
+        for text in [readme, runbook]:
+            self.assertIn("requirements.txt", text)
+            self.assertIn("python -m pip install -r requirements.txt", text)
+        for text in [readme, runbook, test_plan]:
+            self.assertIn("storage_mode", text)
+            self.assertIn("APP_STORAGE=sqlite", text)

@@ -7,7 +7,7 @@ from typing import Dict
 from urllib.request import Request, urlopen
 
 from .models import ChatResponse, HistoryResponse, LogEntry, TokenState
-from .repository import InMemoryRepository
+from .repository import InMemoryRepository, Repository, SQLiteRepository
 
 
 class DemoModelClient:
@@ -69,9 +69,17 @@ class DemoModelClient:
             return None
 
 
+def create_repository_from_env() -> Repository:
+    storage = os.getenv("APP_STORAGE", "memory").strip().lower()
+    if storage == "sqlite":
+        db_path = os.getenv("SQLITE_DB_PATH", "runtime_data/app.sqlite3")
+        return SQLiteRepository(db_path)
+    return InMemoryRepository()
+
+
 class AppService:
-    def __init__(self) -> None:
-        self.repository = InMemoryRepository()
+    def __init__(self, repository: Repository | None = None) -> None:
+        self.repository = repository or create_repository_from_env()
         self.tokens: Dict[str, TokenState] = {}
         self.model_client = DemoModelClient()
 
@@ -199,6 +207,7 @@ class AppService:
             "status": "ok",
             "service": "ai_service",
             "runtime_mode": runtime_mode,
+            "storage_mode": self.repository.storage_mode(),
             "model_name": os.getenv(
                 "LLM_MODEL_NAME", config.get("model_name", "demo-llm")
             ),

@@ -32,3 +32,18 @@ class ProjectLayoutTests(unittest.TestCase):
         ]
         missing = [str(p) for p in required if not p.exists()]
         self.assertFalse(missing, f"Missing cross-platform files: {missing}")
+
+    def test_python_runtime_requirements_are_declared(self):
+        requirements_path = Path.cwd() / "requirements.txt"
+        self.assertTrue(requirements_path.exists(), "Missing requirements.txt")
+        requirements = requirements_path.read_text(encoding="utf-8").lower()
+        for package in ["fastapi", "uvicorn", "httpx", "pydantic"]:
+            self.assertIn(package, requirements)
+
+    def test_windows_scripts_do_not_use_local_python_absolute_path(self):
+        root = Path.cwd()
+        for script_name in ["start_api.ps1", "start_frontend.ps1"]:
+            script = (root / "scripts" / script_name).read_text(encoding="utf-8")
+            self.assertNotIn("codex-runtimes", script)
+            self.assertNotIn("C:\\Users\\kidosto", script)
+            self.assertIn("$env:PYTHON", script)

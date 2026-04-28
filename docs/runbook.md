@@ -8,6 +8,18 @@
 - Windows、Linux 或 WSL
 - Linux/WSL 环境用于编译和运行 C++ 网关
 
+首次运行前需要在项目根目录安装 Python 依赖：
+
+```powershell
+python -m pip install -r requirements.txt
+```
+
+Linux / WSL 下同样执行：
+
+```bash
+python -m pip install -r requirements.txt
+```
+
 ## 统一端口
 
 - Python 服务：`8000`
@@ -17,6 +29,11 @@
 ## 环境变量模板
 
 项目根目录提供 `.env.example`。建议先按该文件统一模型接口地址和端口参数，再启动服务。
+
+数据存储相关参数包括：
+
+- `APP_STORAGE`：默认 `memory`；设置为 `sqlite` 时启用本地持久化仓储
+- `SQLITE_DB_PATH`：SQLite 数据库文件路径，默认 `runtime_data/app.sqlite3`
 
 网关相关参数包括：
 
@@ -117,6 +134,28 @@ export LLM_MODEL_NAME="your-model-name"
 
 未配置时，系统自动回退到演示模式，适合答辩和离线展示。
 
+## 持久化运行
+
+如需在演示或测试中保留会话、日志和配置，可启用 SQLite 仓储。
+
+### Windows PowerShell
+
+```powershell
+$env:APP_STORAGE="sqlite"
+$env:SQLITE_DB_PATH="runtime_data/app.sqlite3"
+.\scripts\start_api.ps1
+```
+
+### Linux / WSL
+
+```bash
+export APP_STORAGE=sqlite
+export SQLITE_DB_PATH=runtime_data/app.sqlite3
+bash scripts/start_api.sh
+```
+
+SQLite 文件属于本地运行数据，不纳入版本库。论文中的 MySQL 表结构仍以 `db/schema.sql` 为正式数据库设计依据。
+
 ## 健康检查约定
 
 统一健康检查接口为 `/api/health`，返回字段包括：
@@ -124,8 +163,11 @@ export LLM_MODEL_NAME="your-model-name"
 - `status`
 - `service`
 - `runtime_mode`
+- `storage_mode`
 - `model_name`
 - `session_count`
+
+其中 `storage_mode` 返回 `memory` 或 `sqlite`，用于确认当前是否启用了 `APP_STORAGE=sqlite` 持久化模式。
 
 ## 支持边界
 
