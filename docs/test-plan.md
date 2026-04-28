@@ -38,15 +38,36 @@ python -m pip install -r requirements.txt
 
 ## 并发测试建议
 
-后续在 Linux 环境使用以下命令：
+建议在 Linux 或 WSL 环境启动 Python 服务和 C++ 网关后，使用项目自带脚本进行可复现压测：
 
 ```bash
-ab -n 1000 -c 100 http://127.0.0.1:8080/api/chat
+python scripts/benchmark_gateway.py \
+  --base-url http://127.0.0.1:8080 \
+  --scenario health \
+  --requests 1000 \
+  --concurrency 100 \
+  --output output/benchmark/gateway-health.json
 ```
 
-记录指标：
+如需测试完整问答链路，可执行：
+
+```bash
+python scripts/benchmark_gateway.py \
+  --base-url http://127.0.0.1:8080 \
+  --scenario chat \
+  --requests 300 \
+  --concurrency 30 \
+  --output output/benchmark/gateway-chat.json
+```
+
+脚本会输出并落盘以下指标：
 
 - 平均响应时间
+- P95 响应时间
 - 吞吐量
 - 错误率
-- 并发数变化趋势
+- `throughput_rps`
+- `success_rate_percent`
+- 错误样例
+
+`ab` 可作为补充工具，但论文第 6 章建议优先引用 `scripts/benchmark_gateway.py` 生成的 JSON 结果，便于保留实验参数和原始指标。

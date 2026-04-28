@@ -56,9 +56,36 @@ curl -X POST http://127.0.0.1:8080/api/chat \
 curl "http://127.0.0.1:8080/api/history?token=<token>"
 ```
 
+### 网关压测
+
+项目提供 `scripts/benchmark_gateway.py` 用于在 Linux / WSL 下生成可复现的并发测试结果。健康检查链路适合验证 C++ 网关接入吞吐能力：
+
+```bash
+python scripts/benchmark_gateway.py \
+  --base-url http://127.0.0.1:8080 \
+  --scenario health \
+  --requests 1000 \
+  --concurrency 100 \
+  --output output/benchmark/gateway-health.json
+```
+
+智能问答链路适合验证网关转发与 Python 服务协同能力：
+
+```bash
+python scripts/benchmark_gateway.py \
+  --base-url http://127.0.0.1:8080 \
+  --scenario chat \
+  --requests 300 \
+  --concurrency 30 \
+  --output output/benchmark/gateway-chat.json
+```
+
+结果文件包含平均响应时间、P95 响应时间、`throughput_rps`、成功率、错误率和错误样例，可直接作为论文第 6 章实验表格的原始数据来源。
+
 ## 结果要求
 
 - `/api/health` 能通过网关返回服务状态
 - 网关可成功转发 `/api/chat`
 - `/api/history` 返回会话标题和消息列表
 - 当 Python 服务关闭时，网关返回 `502 Bad Gateway` 风格错误响应
+- `scripts/benchmark_gateway.py` 可生成包含 P95 和 `throughput_rps` 的 JSON 压测结果
