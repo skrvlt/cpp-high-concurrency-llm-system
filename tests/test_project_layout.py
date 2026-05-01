@@ -47,3 +47,11 @@ class ProjectLayoutTests(unittest.TestCase):
             self.assertNotIn("codex-runtimes", script)
             self.assertNotIn("C:\\Users\\kidosto", script)
             self.assertIn("$env:PYTHON", script)
+
+    def test_linux_shell_scripts_use_lf_line_endings(self):
+        scripts = sorted((Path.cwd() / "scripts").glob("*.sh"))
+        self.assertTrue(scripts, "Missing Linux shell scripts")
+        for script_path in scripts:
+            with self.subTest(script=script_path.name):
+                content = script_path.read_bytes()
+                self.assertNotIn(b"\r\n", content)

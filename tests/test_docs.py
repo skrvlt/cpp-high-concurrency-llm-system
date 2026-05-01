@@ -1,8 +1,15 @@
 import unittest
 from pathlib import Path
 
+from tools.generate_thesis_docx import clean_inline_markdown
+
 
 class DocsTests(unittest.TestCase):
+    def test_thesis_docx_generator_removes_inline_markdown_marks(self):
+        text = clean_inline_markdown("**关键词：** `C++` 与 `FastAPI`")
+
+        self.assertEqual("关键词： C++ 与 FastAPI", text)
+
     def test_thesis_contains_required_sections(self):
         text = (Path.cwd() / "output" / "doc" / "毕业设计说明书初稿.md").read_text(
             encoding="utf-8"

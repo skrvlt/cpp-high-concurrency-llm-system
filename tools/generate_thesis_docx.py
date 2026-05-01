@@ -1,17 +1,19 @@
 from pathlib import Path
 
-from docx import Document
-from docx.enum.text import WD_ALIGN_PARAGRAPH
-from docx.oxml.ns import qn
-from docx.shared import Pt
-
 
 ROOT = Path(__file__).resolve().parents[1]
 SOURCE = ROOT / "output" / "doc" / "毕业设计说明书初稿.md"
 OUTPUT = ROOT / "output" / "doc" / "毕业设计说明书初稿.docx"
 
 
+def clean_inline_markdown(text):
+    return text.replace("**", "").replace("`", "")
+
+
 def set_run_font(run, size=12, bold=False):
+    from docx.oxml.ns import qn
+    from docx.shared import Pt
+
     run.font.name = "宋体"
     run._element.rPr.rFonts.set(qn("w:eastAsia"), "宋体")
     run.font.size = Pt(size)
@@ -19,6 +21,9 @@ def set_run_font(run, size=12, bold=False):
 
 
 def add_paragraph(doc, text, style="body"):
+    from docx.enum.text import WD_ALIGN_PARAGRAPH
+    from docx.shared import Pt
+
     p = doc.add_paragraph()
     p.paragraph_format.first_line_indent = Pt(24) if style == "body" else Pt(0)
     p.paragraph_format.line_spacing = 1.5
@@ -36,12 +41,14 @@ def add_paragraph(doc, text, style="body"):
         run = p.add_run(text)
         set_run_font(run, size=12, bold=True)
     else:
-        run = p.add_run(text)
+        run = p.add_run(clean_inline_markdown(text))
         set_run_font(run, size=12, bold=False)
     return p
 
 
 def build_doc():
+    from docx import Document
+
     doc = Document()
     add_paragraph(doc, "本科毕业设计说明书（论文）初稿", "title")
 

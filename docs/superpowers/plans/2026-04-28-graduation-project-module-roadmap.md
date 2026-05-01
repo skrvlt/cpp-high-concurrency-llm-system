@@ -26,7 +26,7 @@
 | M1 Foundation Runtime | Cross-platform scripts, dependency setup, environment variables, health checks | Mostly done | `README.md`, `.env.example`, `requirements.txt`, `docs/runbook.md` | Keep updated when runtime contracts change |
 | M2 Python AI Service | Login, chat, history, logs, config, overview, model fallback | Mostly done | `services/ai_service/app`, `tests/python` | Add stronger admin/session APIs only if needed by frontend or thesis |
 | M3 Persistence | Memory repository, SQLite runtime persistence, MySQL thesis schema | Mostly done | `SQLiteRepository`, `APP_STORAGE=sqlite`, `db/schema.sql` | Add screenshots or DB verification material for thesis if needed |
-| M4 C++ Gateway | Linux/WSL epoll gateway, forwarding, error behavior, compile/run validation | Partly done | `cpp_gateway`, gateway scripts, validation docs | Strengthen gateway code and WSL/Linux evidence |
+| M4 C++ Gateway | Linux/WSL epoll gateway, forwarding, error behavior, compile/run validation | Completed | `cpp_gateway`, gateway scripts, `docs/gateway-validation.md` | Move to M5 frontend defense polish |
 | M5 Frontend Demo | User page, admin page, mode switching, polished defense demo | Partly done | `frontend/index.html`, `frontend/admin.html`, contract tests | Improve visual/demo quality and status visibility |
 | M6 Testing And Benchmark | Unit tests, API tests, layout tests, runtime checks, gateway benchmark | Partly done | `tests/`, `scripts/benchmark_gateway.py` | Run real WSL/Linux benchmark and store summarized results |
 | M7 Thesis And Figures | Full thesis, diagrams, tables, screenshots, experiment sections | Partly done | `output/doc`, `docs/figures-guide.md` | Finish final-version figures, screenshots, and Chapter 4-6 polish |
@@ -49,7 +49,7 @@
 - Modify: `docs/gateway-validation.md`
 - Test: `tests/test_cpp_gateway_layout.py`
 
-- [ ] **M4-1 Review current gateway implementation**
+- [x] **M4-1 Review current gateway implementation**
 
   Read `cpp_gateway/src/http_server.cpp`, `cpp_gateway/include/http_server.h`, `cpp_gateway/src/main.cpp`, and `cpp_gateway/include/thread_pool.h`.
 
@@ -65,7 +65,7 @@
   documented validation command:
   ```
 
-- [ ] **M4-2 Add or verify upstream failure contract**
+- [x] **M4-2 Add or verify upstream failure contract**
 
   Desired behavior: when Python service is unavailable, gateway returns an HTTP response whose status line or body clearly indicates `502 Bad Gateway`.
 
@@ -85,7 +85,7 @@
   python -m unittest tests.test_cpp_gateway_layout -v
   ```
 
-- [ ] **M4-3 Verify gateway compile path**
+- [x] **M4-3 Verify gateway compile path**
 
   Use WSL/Linux command when available:
 
@@ -95,7 +95,7 @@
 
   Expected: CMake/g++ build succeeds and produces `cpp_gateway/build/llm_gateway`.
 
-- [ ] **M4-4 Verify gateway runtime path**
+- [x] **M4-4 Verify gateway runtime path**
 
   Start Python API, then start gateway:
 
@@ -108,7 +108,7 @@
 
   Expected: `/api/health`, `/api/login`, `/api/chat`, and `/api/history` work through port `8080`.
 
-- [ ] **M4-5 Update thesis support**
+- [x] **M4-5 Update thesis support**
 
   Update `output/doc/毕业设计说明书初稿.md` Chapter 5 gateway implementation section with actual gateway validation results and command names. Regenerate DOCX:
 
@@ -116,7 +116,7 @@
   & 'C:\Users\kidosto\.cache\codex-runtimes\codex-primary-runtime\dependencies\python\python.exe' tools\generate_thesis_docx.py
   ```
 
-- [ ] **M4-6 Commit and push**
+- [x] **M4-6 Commit and push**
 
   Verification:
 
@@ -265,20 +265,23 @@ Risk or blocker:
 
 ## Current Snapshot
 
-Date: 2026-04-28
-Branch: `codex/project-module-roadmap`
+Date: 2026-05-01
+Branch: `codex/gateway-validation-hardening`
+Commit: latest commit on `codex/gateway-validation-hardening`
 Completed:
 - M1 foundation runtime mostly completed.
 - M2 Python service first version completed.
 - M3 SQLite persistence support completed in `ad87350`.
 - M6 benchmark script support completed in `4a6bb87`.
+- M4 gateway review, 502 error contract, CMake/g++ fallback build path, WSL gateway forwarding validation, thesis support text, and DOCX regeneration are completed in the current working tree.
+- Verification completed with `python -m unittest discover -s tests -v`, `python -m compileall services tests scripts tools`, `bash scripts/build_gateway_wsl.sh`, `bash scripts/verify_runtime.sh gateway 127.0.0.1 8000 18081`, and `bash scripts/verify_gateway_smoke.sh 127.0.0.1 18081`.
+- Upstream failure validation completed with `UPSTREAM_PORT=65530`; the gateway returned `HTTP/1.1 502 Bad Gateway` and `{"error":"failed to connect upstream"}`.
 Remaining:
-- M4 gateway hardening and real WSL/Linux evidence.
 - M5 frontend defense polish.
 - M6 actual benchmark result capture.
 - M7 final thesis polish and DOCX review.
 - M8 defense package.
 Next recommended task:
-- Start M4-1 gateway implementation review, then create branch `codex/gateway-validation-hardening`.
+- Start M5 frontend defense polish.
 Risk or blocker:
-- WSL/Linux validation depends on local WSL availability and network/port state.
+- Full Linux benchmark evidence is still pending; current gateway evidence is WSL-based and suitable for implementation validation.

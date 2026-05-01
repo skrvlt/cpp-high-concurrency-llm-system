@@ -18,10 +18,10 @@ echo "Verify mode: ${MODE}"
 echo "Base URI: ${BASE_URI}"
 
 echo "Health response:"
-curl -s "${BASE_URI}/health"
+curl --noproxy "*" -s "${BASE_URI}/health"
 
 echo
-LOGIN_RESPONSE=$(curl -s -X POST "${BASE_URI}/login" \
+LOGIN_RESPONSE=$(curl --noproxy "*" -s -X POST "${BASE_URI}/login" \
   -H "Content-Type: application/json" \
   -d '{"username":"student","password":"student123"}')
 
@@ -31,6 +31,6 @@ echo "${LOGIN_RESPONSE}"
 TOKEN=$(printf '%s' "${LOGIN_RESPONSE}" | python3 -c 'import json,sys; print(json.load(sys.stdin)["token"])')
 
 echo "Chat response:"
-curl -s -X POST "${BASE_URI}/chat" \
+curl --noproxy "*" -s -X POST "${BASE_URI}/chat" \
   -H "Content-Type: application/json" \
   -d "{\"token\":\"${TOKEN}\",\"message\":\"请返回当前运行模式的验证信息\"}"

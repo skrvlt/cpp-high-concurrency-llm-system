@@ -4,9 +4,11 @@
 #include <fcntl.h>
 #include <netinet/in.h>
 #include <sys/epoll.h>
+#include <sys/select.h>
 #include <sys/socket.h>
 #include <unistd.h>
 
+#include <cerrno>
 #include <cstring>
 #include <iostream>
 #include <sstream>
@@ -15,6 +17,9 @@
 namespace {
 constexpr int kMaxEvents = 64;
 constexpr int kBufferSize = 8192;
+constexpr int kUpstreamConnectTimeoutSeconds = 3;
+constexpr int kUpstreamIoTimeoutSeconds = 10;
+
 std::string JsonEscape(const std::string &input) {
     std::string output;
     output.reserve(input.size());
@@ -25,6 +30,45 @@ std::string JsonEscape(const std::string &input) {
         output.push_back(ch);
     }
     return output;
+}
+
+bool SetSocketBlocking(int fd, bool blocking) {
+    const int flags = fcntl(fd, F_GETFL, 0);
+    if (flags < 0) {
+        return false;
+    }
+    const int updated_flags = blocking ? (flags & ~O_NONBLOCK) : (flags | O_NONBLOCK);
+    return fcntl(fd, F_SETFL, updated_flags) == 0;
+}
+
+void SetSocketTimeouts(int fd) {
+    timeval timeout{};
+    timeout.tv_sec = kUpstreamIoTimeoutSeconds;
+    timeout.tv_usec = 0;
+    setsockopt(fd, SOL_SOCKET, SO_RCVTIMEO, &timeout, sizeof(timeout));
+    setsockopt(fd, SOL_SOCKET, SO_SNDTIMEO, &timeout, sizeof(timeout));
+}
+
+bool WaitForUpstreamConnect(int fd) {
+    fd_set write_fds;
+    FD_ZERO(&write_fds);
+    FD_SET(fd, &write_fds);
+
+    timeval timeout{};
+    timeout.tv_sec = kUpstreamConnectTimeoutSeconds;
+    timeout.tv_usec = 0;
+
+    const int selected = select(fd + 1, nullptr, &write_fds, nullptr, &timeout);
+    if (selected <= 0) {
+        return false;
+    }
+
+    int socket_error = 0;
+    socklen_t error_length = sizeof(socket_error);
+    if (getsockopt(fd, SOL_SOCKET, SO_ERROR, &socket_error, &error_length) < 0) {
+        return false;
+    }
+    return socket_error == 0;
 }
 }
 
@@ -152,10 +196,21 @@ std::string HttpServer::ForwardToUpstream(
         return BuildErrorResponse("invalid upstream host");
     }
 
-    if (connect(upstream_fd, reinterpret_cast<sockaddr *>(&upstream_addr), sizeof(upstream_addr)) < 0) {
+    if (!SetSocketBlocking(upstream_fd, false)) {
         close(upstream_fd);
-        return BuildErrorResponse("failed to connect upstream");
+        return BuildErrorResponse("failed to configure upstream socket");
     }
+
+    const int connect_result =
+        connect(upstream_fd, reinterpret_cast<sockaddr *>(&upstream_addr), sizeof(upstream_addr));
+    if (connect_result < 0) {
+        if (errno != EINPROGRESS || !WaitForUpstreamConnect(upstream_fd)) {
+            close(upstream_fd);
+            return BuildErrorResponse("failed to connect upstream");
+        }
+    }
+    SetSocketBlocking(upstream_fd, true);
+    SetSocketTimeouts(upstream_fd);
 
     std::ostringstream req;
     req << method << " " << path << " HTTP/1.1\r\n";
