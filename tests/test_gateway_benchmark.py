@@ -55,3 +55,17 @@ class GatewayBenchmarkTests(unittest.TestCase):
             self.assertIn("scripts/benchmark_gateway.py", text)
             self.assertIn("P95", text)
             self.assertIn("throughput_rps", text)
+
+    def test_benchmark_result_files_are_kept_as_experiment_evidence(self):
+        root = Path.cwd()
+        for file_name, scenario in [
+            ("gateway-health.json", "health"),
+            ("gateway-chat.json", "chat"),
+        ]:
+            result_path = root / "output" / "benchmark" / file_name
+            with self.subTest(file=file_name):
+                self.assertTrue(result_path.exists())
+                result = result_path.read_text(encoding="utf-8")
+                self.assertIn(f'"scenario": "{scenario}"', result)
+                self.assertIn('"success_rate_percent": 100.0', result)
+                self.assertIn('"throughput_rps"', result)

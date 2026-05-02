@@ -146,6 +146,35 @@ python scripts/benchmark_gateway.py \
 
 结果文件包含平均响应时间、P95 响应时间、`throughput_rps`、成功率、错误率和错误样例，可直接作为论文第 6 章实验表格的原始数据来源。
 
+### M6 压测实测结果
+
+本次 M6 压测在 Windows + WSL 联调环境完成。Python 服务运行在 `127.0.0.1:8000`，C++ 网关运行在 WSL 中，因本机 `8080` 端口被其他服务占用，实测网关端口使用 `18081`。压测命令如下：
+
+```bash
+python scripts/benchmark_gateway.py \
+  --base-url http://127.0.0.1:18081 \
+  --scenario health \
+  --requests 1000 \
+  --concurrency 100 \
+  --output output/benchmark/gateway-health.json
+
+python scripts/benchmark_gateway.py \
+  --base-url http://127.0.0.1:18081 \
+  --scenario chat \
+  --requests 300 \
+  --concurrency 30 \
+  --output output/benchmark/gateway-chat.json
+```
+
+实测结果如下：
+
+| 场景 | 总请求数 | 并发数 | 平均响应时间/ms | P95 响应时间/ms | throughput_rps | 成功率/% | 错误数 |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| health | 1000 | 100 | 134.21 | 166.90 | 635.41 | 100.00 | 0 |
+| chat | 300 | 30 | 43.67 | 65.21 | 642.10 | 100.00 | 0 |
+
+压测过程中曾发现并发 POST 请求体读取不完整会导致少量 422 错误。当前网关已根据 `Content-Length` 读取完整请求体后再转发，修复后 health 与 chat 两类场景均达到 100% 成功率。
+
 ## 结果要求
 
 - `/api/health` 能通过网关返回服务状态

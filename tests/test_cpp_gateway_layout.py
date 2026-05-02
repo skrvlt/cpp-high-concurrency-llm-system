@@ -62,3 +62,12 @@ class CppGatewayLayoutTests(unittest.TestCase):
         self.assertIn("SO_ERROR", source)
         self.assertIn("SetSocketBlocking", source)
         self.assertIn("failed to connect upstream", source)
+
+    def test_cpp_gateway_reads_complete_http_request_body(self):
+        source = (Path.cwd() / "cpp_gateway" / "src" / "http_server.cpp").read_text(
+            encoding="utf-8"
+        )
+        self.assertIn("ReadClientRequest", source)
+        self.assertIn("ParseContentLength", source)
+        self.assertIn("Content-Length:", source)
+        self.assertIn("request.size() >= expected_request_size", source)

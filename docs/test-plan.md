@@ -71,3 +71,19 @@ python scripts/benchmark_gateway.py \
 - 错误样例
 
 `ab` 可作为补充工具，但论文第 6 章建议优先引用 `scripts/benchmark_gateway.py` 生成的 JSON 结果，便于保留实验参数和原始指标。
+
+## M6 实测结果
+
+本阶段在 Windows + WSL 联调环境下完成 C++ 网关真实压测。Python FastAPI 服务运行在 `127.0.0.1:8000`，C++ epoll 网关运行在 WSL 中。由于本机 `8080` 端口被其他服务占用，本次压测将网关端口设置为 `18081`，上游仍指向 `127.0.0.1:8000`。
+
+压测前发现 C++ 网关在并发 POST 场景下存在请求体读取不完整的问题，表现为少量 `422 Unprocessable Entity` 和连接重置。修复方式为按照 `Content-Length` 循环读取完整 HTTP 请求体后再转发给 Python 服务。修复后实测结果如下：
+
+| 场景 | 总请求数 | 并发数 | 平均响应时间/ms | P95 响应时间/ms | throughput_rps | 成功率/% | 错误数 |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| health | 1000 | 100 | 134.21 | 166.90 | 635.41 | 100.00 | 0 |
+| chat | 300 | 30 | 43.67 | 65.21 | 642.10 | 100.00 | 0 |
+
+原始 JSON 结果保存位置：
+
+- `output/benchmark/gateway-health.json`
+- `output/benchmark/gateway-chat.json`

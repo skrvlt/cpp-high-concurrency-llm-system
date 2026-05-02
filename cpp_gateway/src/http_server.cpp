@@ -70,6 +70,58 @@ bool WaitForUpstreamConnect(int fd) {
     }
     return socket_error == 0;
 }
+
+std::size_t ParseContentLength(const std::string &request) {
+    const std::string marker = "Content-Length:";
+    const auto header_end = request.find("\r\n\r\n");
+    if (header_end == std::string::npos) {
+        return 0;
+    }
+
+    const auto marker_pos = request.substr(0, header_end).find(marker);
+    if (marker_pos == std::string::npos) {
+        return 0;
+    }
+
+    std::size_t value_start = marker_pos + marker.size();
+    while (value_start < header_end &&
+           (request[value_start] == ' ' || request[value_start] == '\t')) {
+        ++value_start;
+    }
+    const auto value_end = request.find("\r\n", value_start);
+    const std::string value = request.substr(value_start, value_end - value_start);
+    try {
+        return static_cast<std::size_t>(std::stoul(value));
+    } catch (...) {
+        return 0;
+    }
+}
+
+std::string ReadClientRequest(int client_fd) {
+    SetSocketTimeouts(client_fd);
+
+    std::string request;
+    char buffer[kBufferSize];
+    while (true) {
+        const int bytes = recv(client_fd, buffer, sizeof(buffer), 0);
+        if (bytes <= 0) {
+            break;
+        }
+        request.append(buffer, bytes);
+
+        const auto header_end = request.find("\r\n\r\n");
+        if (header_end == std::string::npos) {
+            continue;
+        }
+
+        const std::size_t expected_request_size =
+            header_end + 4 + ParseContentLength(request);
+        if (request.size() >= expected_request_size) {
+            break;
+        }
+    }
+    return request;
+}
 }
 
 HttpServer::HttpServer(int port, std::string upstream_host, int upstream_port)
@@ -136,15 +188,12 @@ void HttpServer::Run() {
 }
 
 void HttpServer::HandleClient(int client_fd) {
-    char buffer[kBufferSize];
-    std::memset(buffer, 0, sizeof(buffer));
-    const int bytes = read(client_fd, buffer, sizeof(buffer) - 1);
-    if (bytes <= 0) {
+    std::string request = ReadClientRequest(client_fd);
+    if (request.empty()) {
         close(client_fd);
         return;
     }
 
-    std::string request(buffer, bytes);
     const auto request_line_end = request.find("\r\n");
     if (request_line_end == std::string::npos) {
         const std::string error = BuildErrorResponse("invalid request line");
