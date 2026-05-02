@@ -29,7 +29,7 @@
 | M4 C++ Gateway | Linux/WSL epoll gateway, forwarding, error behavior, compile/run validation | Completed | `cpp_gateway`, gateway scripts, `docs/gateway-validation.md` | Move to M5 frontend defense polish |
 | M5 Frontend Demo | User page, admin page, mode switching, polished defense demo | Completed | `frontend/index.html`, `frontend/admin.html`, contract tests | Move to M6 real benchmark evidence |
 | M6 Testing And Benchmark | Unit tests, API tests, layout tests, runtime checks, gateway benchmark | Completed | `tests/`, `scripts/benchmark_gateway.py`, `output/benchmark/*.json` | Move to M7 thesis finalization |
-| M7 Thesis And Figures | Full thesis, diagrams, tables, screenshots, experiment sections | Partly done | `output/doc`, `docs/figures-guide.md` | Finish final-version figures, screenshots, and Chapter 4-6 polish |
+| M7 Thesis And Figures | Full thesis, diagrams, tables, screenshots, experiment sections | Completed | `output/doc`, `output/doc/figures`, `docs/figures-guide.md` | Move to M8 defense package |
 | M8 Defense Package | PPT, demo script, Q&A notes, explanation checklist | Not started | No dedicated deck/script yet | Create defense outline after code/demo path stabilizes |
 
 ## Recommended Module Order
@@ -205,23 +205,23 @@
 - Possibly modify: `tools/generate_thesis_docx.py`
 - Possibly modify: figure assets under `output/doc/figures/`
 
-- [ ] **M7-1 Remove remaining draft wording**
+- [x] **M7-1 Remove remaining draft wording**
 
   Search for `建议`, `后续`, `正式定稿`, `补充`, `示例` in thesis body and replace with final-delivery wording where appropriate.
 
-- [ ] **M7-2 Finish Chapter 4 figures**
+- [x] **M7-2 Finish Chapter 4 figures**
 
   Ensure architecture diagram, flow diagram, sequence diagram, and E-R diagram are referenced consistently.
 
-- [ ] **M7-3 Finish Chapter 5 implementation explanation**
+- [x] **M7-3 Finish Chapter 5 implementation explanation**
 
   Tie frontend, Python service, repository, C++ gateway, and benchmark script to actual code paths.
 
-- [ ] **M7-4 Finish Chapter 6 test evidence**
+- [x] **M7-4 Finish Chapter 6 test evidence**
 
   Add measured environment, test commands, benchmark results, screenshots placeholders, and result analysis.
 
-- [ ] **M7-5 Regenerate and inspect DOCX**
+- [x] **M7-5 Regenerate and inspect DOCX**
 
   Use bundled document Python:
 
@@ -266,8 +266,8 @@ Risk or blocker:
 ## Current Snapshot
 
 Date: 2026-05-03
-Branch: `codex/real-benchmark-evidence`
-Commit: pending in current branch
+Branch: `codex/thesis-finalization`
+Commit: pending in current branch; M6 local commit `65cb88b`
 Completed:
 - M1 foundation runtime mostly completed.
 - M2 Python service first version completed.
@@ -277,11 +277,12 @@ Completed:
 - Verification completed with `python -m unittest discover -s tests -v`, `python -m compileall services tests scripts tools`, `bash scripts/build_gateway_wsl.sh`, `bash scripts/verify_runtime.sh gateway 127.0.0.1 8000 18081`, and `bash scripts/verify_gateway_smoke.sh 127.0.0.1 18081`.
 - Upstream failure validation completed with `UPSTREAM_PORT=65530`; the gateway returned `HTTP/1.1 502 Bad Gateway` and `{"error":"failed to connect upstream"}`.
 - M5 frontend demo polish is implemented in the current working tree: user/admin pages show API base URL and health fields, admin overview uses defense-friendly metric labels, and `?mode=gateway` remains backed by `frontend/config.js`.
-- M6 real benchmark evidence is implemented in the current working tree: WSL C++ gateway benchmark JSON files are saved under `output/benchmark`, and Chapter 6 now uses actual measured health/chat values.
+- M6 real benchmark evidence is implemented in local commit `65cb88b`: WSL C++ gateway benchmark JSON files are saved under `output/benchmark`, and Chapter 6 now uses actual measured health/chat values.
+- M7 thesis finalization is implemented in the current working tree: draft placeholders were removed, five core figure assets were generated under `output/doc/figures`, DOCX generation now converts Markdown tables into Word tables and inserts figures into corresponding captions, and Chapter 3-6 wording has been polished for final delivery.
 Remaining:
-- M7 final thesis polish and DOCX review.
 - M8 defense package.
 Next recommended task:
-- Finish M6 verification, commit, and push; then start M7 thesis finalization.
+- Verify, commit, and push M7; then start M8 defense package.
 Risk or blocker:
+- GitHub push for M6 failed twice with connection reset; retry M6 and M7 push when network is stable.
 - Full Linux benchmark evidence is still pending; current gateway evidence is WSL-based and suitable for implementation validation.

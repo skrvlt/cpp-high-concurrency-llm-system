@@ -1,7 +1,12 @@
 import unittest
 from pathlib import Path
 
-from tools.generate_thesis_docx import clean_inline_markdown
+from tools.generate_thesis_docx import (
+    FIGURE_ASSETS,
+    clean_inline_markdown,
+    is_markdown_table_row,
+    split_markdown_table_row,
+)
 
 
 class DocsTests(unittest.TestCase):
@@ -45,9 +50,44 @@ class DocsTests(unittest.TestCase):
         for marker in [
             "问答处理时序图",
             "系统 E-R 图",
-            "附录B 后续补充材料说明",
+            "附录B 运行与测试材料索引",
         ]:
             self.assertIn(marker, text)
+
+    def test_thesis_removes_finalization_placeholders(self):
+        text = (Path.cwd() / "output" / "doc" / "毕业设计说明书初稿.md").read_text(
+            encoding="utf-8"
+        )
+        for marker in [
+            "正式定稿时",
+            "建议将该图",
+            "后续补充材料说明",
+            "截图位",
+            "TODO",
+            "占位",
+        ]:
+            self.assertNotIn(marker, text)
+
+    def test_docx_generator_parses_markdown_table_rows(self):
+        self.assertTrue(is_markdown_table_row("| 字段 | 类型 | 备注 |"))
+        self.assertFalse(is_markdown_table_row("| --- | --- | --- |"))
+        self.assertEqual(
+            ["字段", "类型", "备注"],
+            split_markdown_table_row("| 字段 | 类型 | 备注 |"),
+        )
+
+    def test_thesis_core_figure_assets_exist(self):
+        root = Path.cwd()
+        for caption in [
+            "图3-1 系统用例图",
+            "图4-1 系统总体结构图",
+            "图4-2 智能问答处理流程图",
+            "图4-3 问答处理时序图",
+            "图4-4 系统 E-R 图",
+        ]:
+            with self.subTest(caption=caption):
+                self.assertIn(caption, FIGURE_ASSETS)
+                self.assertTrue((root / FIGURE_ASSETS[caption]).exists())
 
     def test_docs_mention_windows_linux_wsl_support(self):
         runbook = (Path.cwd() / "docs" / "runbook.md").read_text(encoding="utf-8")
