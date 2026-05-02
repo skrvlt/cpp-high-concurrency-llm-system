@@ -27,7 +27,7 @@
 | M2 Python AI Service | Login, chat, history, logs, config, overview, model fallback | Mostly done | `services/ai_service/app`, `tests/python` | Add stronger admin/session APIs only if needed by frontend or thesis |
 | M3 Persistence | Memory repository, SQLite runtime persistence, MySQL thesis schema | Mostly done | `SQLiteRepository`, `APP_STORAGE=sqlite`, `db/schema.sql` | Add screenshots or DB verification material for thesis if needed |
 | M4 C++ Gateway | Linux/WSL epoll gateway, forwarding, error behavior, compile/run validation | Completed | `cpp_gateway`, gateway scripts, `docs/gateway-validation.md` | Move to M5 frontend defense polish |
-| M5 Frontend Demo | User page, admin page, mode switching, polished defense demo | Partly done | `frontend/index.html`, `frontend/admin.html`, contract tests | Improve visual/demo quality and status visibility |
+| M5 Frontend Demo | User page, admin page, mode switching, polished defense demo | Completed | `frontend/index.html`, `frontend/admin.html`, contract tests | Move to M6 real benchmark evidence |
 | M6 Testing And Benchmark | Unit tests, API tests, layout tests, runtime checks, gateway benchmark | Partly done | `tests/`, `scripts/benchmark_gateway.py` | Run real WSL/Linux benchmark and store summarized results |
 | M7 Thesis And Figures | Full thesis, diagrams, tables, screenshots, experiment sections | Partly done | `output/doc`, `docs/figures-guide.md` | Finish final-version figures, screenshots, and Chapter 4-6 polish |
 | M8 Defense Package | PPT, demo script, Q&A notes, explanation checklist | Not started | No dedicated deck/script yet | Create defense outline after code/demo path stabilizes |
@@ -143,23 +143,23 @@
 - Modify: `frontend/styles.css`
 - Test: `tests/test_frontend_contract.py`
 
-- [ ] **M5-1 Add visible runtime mode**
+- [x] **M5-1 Add visible runtime mode**
 
   Show current API mode and base URL in the user and admin pages.
 
-- [ ] **M5-2 Add health/status panel**
+- [x] **M5-2 Add health/status panel**
 
   Display `/api/health` fields: `runtime_mode`, `storage_mode`, `model_name`, `session_count`.
 
-- [ ] **M5-3 Improve admin overview presentation**
+- [x] **M5-3 Improve admin overview presentation**
 
   Make user count, session count, message count, log count, and model name obvious for defense demonstration.
 
-- [ ] **M5-4 Preserve direct/gateway mode switching**
+- [x] **M5-4 Preserve direct/gateway mode switching**
 
   Ensure `?mode=gateway` still routes frontend requests through port `8080`.
 
-- [ ] **M5-5 Verify frontend contract**
+- [x] **M5-5 Verify frontend contract**
 
   Run:
 
@@ -265,9 +265,9 @@ Risk or blocker:
 
 ## Current Snapshot
 
-Date: 2026-05-01
-Branch: `codex/gateway-validation-hardening`
-Commit: latest commit on `codex/gateway-validation-hardening`
+Date: 2026-05-02
+Branch: `codex/frontend-demo-polish`
+Commit: pending in current branch
 Completed:
 - M1 foundation runtime mostly completed.
 - M2 Python service first version completed.
@@ -276,12 +276,12 @@ Completed:
 - M4 gateway review, 502 error contract, CMake/g++ fallback build path, WSL gateway forwarding validation, thesis support text, and DOCX regeneration are completed in the current working tree.
 - Verification completed with `python -m unittest discover -s tests -v`, `python -m compileall services tests scripts tools`, `bash scripts/build_gateway_wsl.sh`, `bash scripts/verify_runtime.sh gateway 127.0.0.1 8000 18081`, and `bash scripts/verify_gateway_smoke.sh 127.0.0.1 18081`.
 - Upstream failure validation completed with `UPSTREAM_PORT=65530`; the gateway returned `HTTP/1.1 502 Bad Gateway` and `{"error":"failed to connect upstream"}`.
+- M5 frontend demo polish is implemented in the current working tree: user/admin pages show API base URL and health fields, admin overview uses defense-friendly metric labels, and `?mode=gateway` remains backed by `frontend/config.js`.
 Remaining:
-- M5 frontend defense polish.
 - M6 actual benchmark result capture.
 - M7 final thesis polish and DOCX review.
 - M8 defense package.
 Next recommended task:
-- Start M5 frontend defense polish.
+- Finish M5 verification, commit, and push; then start M6 real benchmark evidence.
 Risk or blocker:
 - Full Linux benchmark evidence is still pending; current gateway evidence is WSL-based and suitable for implementation validation.

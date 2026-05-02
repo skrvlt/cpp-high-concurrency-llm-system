@@ -23,6 +23,38 @@ function updateModeBanner() {
   modeBox.textContent = endpointConfig.gateway ? "网关转发模式" : "直连服务模式";
 }
 
+function setText(id, value) {
+  const node = document.getElementById(id);
+  if (!node) return;
+  node.textContent = value === undefined || value === null || value === "" ? "未返回" : value;
+}
+
+function renderHealthStatus(data) {
+  setText("api-base-value", API_BASE);
+  setText("health-runtime-mode", data.runtime_mode);
+  setText("health-storage-mode", data.storage_mode);
+  setText("health-model-name", data.model_name);
+  setText("health-session-count", data.session_count);
+}
+
+async function loadHealthStatus() {
+  setText("api-base-value", API_BASE);
+  try {
+    const res = await fetch(`${API_BASE}/health`);
+    const data = await res.json();
+    if (!res.ok) {
+      setText("health-runtime-mode", "接口异常");
+      return;
+    }
+    renderHealthStatus(data);
+  } catch (error) {
+    setText("health-runtime-mode", "连接失败");
+    setText("health-storage-mode", "未连接");
+    setText("health-model-name", "未连接");
+    setText("health-session-count", "未连接");
+  }
+}
+
 async function login() {
   const username = document.getElementById("username").value.trim();
   const password = document.getElementById("password").value.trim();
@@ -39,6 +71,7 @@ async function login() {
   authToken = data.token;
   document.getElementById("auth-status").textContent = `登录成功，角色：${data.role}`;
   appendMessage("系统", "已建立会话，可以开始提问。");
+  await loadHealthStatus();
 }
 
 async function sendMessage() {
@@ -63,6 +96,7 @@ async function sendMessage() {
   appendMessage("系统回答", data.answer);
   document.getElementById("message").value = "";
   await loadHistory();
+  await loadHealthStatus();
 }
 
 async function loadHistory() {
@@ -85,6 +119,8 @@ async function loadHistory() {
 }
 
 updateModeBanner();
+loadHealthStatus();
 document.getElementById("login-btn").addEventListener("click", login);
 document.getElementById("send-btn").addEventListener("click", sendMessage);
 document.getElementById("load-history-btn").addEventListener("click", loadHistory);
+document.getElementById("refresh-health-btn").addEventListener("click", loadHealthStatus);
