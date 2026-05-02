@@ -30,7 +30,7 @@
 | M5 Frontend Demo | User page, admin page, mode switching, polished defense demo | Completed | `frontend/index.html`, `frontend/admin.html`, contract tests | Move to M6 real benchmark evidence |
 | M6 Testing And Benchmark | Unit tests, API tests, layout tests, runtime checks, gateway benchmark | Completed | `tests/`, `scripts/benchmark_gateway.py`, `output/benchmark/*.json` | Move to M7 thesis finalization |
 | M7 Thesis And Figures | Full thesis, diagrams, tables, screenshots, experiment sections | Completed | `output/doc`, `output/doc/figures`, `docs/figures-guide.md` | Move to M8 defense package |
-| M8 Defense Package | PPT, demo script, Q&A notes, explanation checklist | Not started | No dedicated deck/script yet | Create defense outline after code/demo path stabilizes |
+| M8 Defense Package | PPT, demo script, Q&A notes, explanation checklist | Completed | `docs/defense`, `output/presentation/答辩PPT大纲.md` | Optional extension: DeepSeek API default integration |
 
 ## Recommended Module Order
 
@@ -236,15 +236,15 @@
 - Create: `docs/defense/qa-notes.md`
 - Optionally create: `output/presentation/答辩PPT大纲.md`
 
-- [ ] **M8-1 Write five-minute demo script**
+- [x] **M8-1 Write five-minute demo script**
 
   Include startup commands, login flow, chat flow, admin overview, gateway mode, and benchmark evidence.
 
-- [ ] **M8-2 Write likely Q&A**
+- [x] **M8-2 Write likely Q&A**
 
   Cover why C++ gateway, why Python service, why epoll is Linux/WSL-only, how persistence works, how tests prove correctness, and what limitations remain.
 
-- [ ] **M8-3 Create PPT outline**
+- [x] **M8-3 Create PPT outline**
 
   Recommended structure: background, requirements, architecture, implementation, test results, innovation points, summary.
 
@@ -266,8 +266,8 @@ Risk or blocker:
 ## Current Snapshot
 
 Date: 2026-05-03
-Branch: `codex/thesis-finalization`
-Commit: pending in current branch; M6 local commit `65cb88b`
+Branch: `codex/defense-package`
+Commit: M6 `65cb88b`, M7 `f4e449b`; M8 pending in current branch
 Completed:
 - M1 foundation runtime mostly completed.
 - M2 Python service first version completed.
@@ -279,10 +279,11 @@ Completed:
 - M5 frontend demo polish is implemented in the current working tree: user/admin pages show API base URL and health fields, admin overview uses defense-friendly metric labels, and `?mode=gateway` remains backed by `frontend/config.js`.
 - M6 real benchmark evidence is implemented in local commit `65cb88b`: WSL C++ gateway benchmark JSON files are saved under `output/benchmark`, and Chapter 6 now uses actual measured health/chat values.
 - M7 thesis finalization is implemented in the current working tree: draft placeholders were removed, five core figure assets were generated under `output/doc/figures`, DOCX generation now converts Markdown tables into Word tables and inserts figures into corresponding captions, and Chapter 3-6 wording has been polished for final delivery.
+- M8 defense package is implemented in the current working tree: five-minute demo script, defense Q&A notes, and PPT outline were added with tests.
 Remaining:
-- M8 defense package.
+- Optional extension: connect the Python model client to DeepSeek API with `deepseek-v4-flash` as the default model after confirming API endpoint and key handling.
 Next recommended task:
-- Verify, commit, and push M7; then start M8 defense package.
+- Verify, commit, and push M8; then decide whether to start the optional DeepSeek API integration module.
 Risk or blocker:
-- GitHub push for M6 failed twice with connection reset; retry M6 and M7 push when network is stable.
+- External LLM API integration requires a valid API key and should not commit secrets into the repository.
 - Full Linux benchmark evidence is still pending; current gateway evidence is WSL-based and suitable for implementation validation.
