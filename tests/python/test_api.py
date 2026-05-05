@@ -39,7 +39,7 @@ class ApiTests(unittest.TestCase):
         token = login.json()["token"]
 
         client.post("/api/chat", json={"token": token, "message": "毕业设计怎么开始"})
-        history = client.get(f"/api/history?token={token}")
+        history = client.get("/api/history", headers={"Authorization": f"Bearer {token}"})
 
         self.assertEqual(200, history.status_code)
         self.assertEqual(1, len(history.json()["messages"]))
@@ -64,7 +64,9 @@ class ApiTests(unittest.TestCase):
         self.assertEqual(200, update.status_code)
         self.assertEqual("graduation-demo-model", update.json()["model_name"])
 
-        logs = client.get(f"/api/admin/logs?token={token}")
+        logs = client.get(
+            "/api/admin/logs", headers={"Authorization": f"Bearer {token}"}
+        )
         self.assertEqual(200, logs.status_code)
         self.assertTrue(any(item["event_type"] == "config_update" for item in logs.json()["items"]))
 
@@ -74,7 +76,9 @@ class ApiTests(unittest.TestCase):
         )
         token = login.json()["token"]
 
-        logs = client.get(f"/api/admin/logs?token={token}")
+        logs = client.get(
+            "/api/admin/logs", headers={"Authorization": f"Bearer {token}"}
+        )
         self.assertEqual(403, logs.status_code)
 
     def test_admin_can_read_system_overview(self):
@@ -91,7 +95,9 @@ class ApiTests(unittest.TestCase):
             "/api/login", json={"username": "admin", "password": "admin123"}
         )
         admin_token = admin_login.json()["token"]
-        overview = client.get(f"/api/admin/overview?token={admin_token}")
+        overview = client.get(
+            "/api/admin/overview", headers={"Authorization": f"Bearer {admin_token}"}
+        )
 
         self.assertEqual(200, overview.status_code)
         body = overview.json()

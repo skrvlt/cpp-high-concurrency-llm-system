@@ -53,6 +53,18 @@ class CppGatewayLayoutTests(unittest.TestCase):
             with self.subTest(script=script_name):
                 self.assertIn('--noproxy "*"', script)
 
+    def test_gateway_validation_uses_authorization_header_for_token(self):
+        root = Path.cwd()
+        validation = (root / "docs" / "gateway-validation.md").read_text(
+            encoding="utf-8"
+        )
+        smoke_script = (root / "scripts" / "verify_gateway_smoke.sh").read_text(
+            encoding="utf-8"
+        )
+        for text in [validation, smoke_script]:
+            self.assertIn("Authorization: Bearer", text)
+            self.assertNotIn("?token=", text)
+
     def test_cpp_gateway_uses_timed_nonblocking_upstream_connect(self):
         source = (Path.cwd() / "cpp_gateway" / "src" / "http_server.cpp").read_text(
             encoding="utf-8"

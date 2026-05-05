@@ -90,13 +90,15 @@ curl -X POST http://127.0.0.1:8080/api/login \
 ```bash
 curl -X POST http://127.0.0.1:8080/api/chat \
   -H "Content-Type: application/json" \
+  -H "Authorization: Bearer <token>" \
   -d '{"token":"<token>","message":"通过网关提问"}'
 ```
 
 ### 历史记录
 
 ```bash
-curl "http://127.0.0.1:8080/api/history?token=<token>"
+curl http://127.0.0.1:8080/api/history \
+  -H "Authorization: Bearer <token>"
 ```
 
 ### 上游失败验证

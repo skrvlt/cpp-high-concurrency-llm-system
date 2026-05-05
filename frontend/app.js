@@ -10,11 +10,31 @@ const LOGIN_ENDPOINT = "/api/login";
 const CHAT_ENDPOINT = "/api/chat";
 let authToken = "";
 
+function createTextElement(tag, text, className = "") {
+  const node = document.createElement(tag);
+  if (className) node.className = className;
+  node.textContent = text === undefined || text === null ? "" : String(text);
+  return node;
+}
+
+function authHeaders() {
+  return { Authorization: `Bearer ${authToken}` };
+}
+
 function appendMessage(title, content, targetId = "chat-log") {
   const node = document.createElement("article");
   node.className = "message-card";
-  node.innerHTML = `<h4>${title}</h4><p>${content}</p>`;
+  node.appendChild(createTextElement("h4", title));
+  node.appendChild(createTextElement("p", content));
   document.getElementById(targetId).prepend(node);
+}
+
+function createMessageLine(label, text) {
+  const line = document.createElement("p");
+  const strong = createTextElement("strong", label);
+  line.appendChild(strong);
+  line.appendChild(document.createTextNode(text === undefined || text === null ? "" : String(text)));
+  return line;
 }
 
 function updateModeBanner() {
@@ -85,7 +105,7 @@ async function sendMessage() {
   appendMessage("我", message);
   const res = await fetch(`${API_BASE}${CHAT_ENDPOINT.replace("/api", "")}`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: { "Content-Type": "application/json", ...authHeaders() },
     body: JSON.stringify({ token: authToken, message }),
   });
   const data = await res.json();
@@ -101,19 +121,17 @@ async function sendMessage() {
 
 async function loadHistory() {
   if (!authToken) return;
-  const res = await fetch(`${API_BASE}/history?token=${encodeURIComponent(authToken)}`);
+  const res = await fetch(`${API_BASE}/history`, { headers: authHeaders() });
   const data = await res.json();
   const box = document.getElementById("history-list");
-  box.innerHTML = "";
+  box.replaceChildren();
   document.getElementById("session-title-value").textContent = data.title || "未生成";
   (data.messages || []).forEach((item, index) => {
     const node = document.createElement("article");
     node.className = "message-card";
-    node.innerHTML = `
-      <h4>第 ${index + 1} 轮</h4>
-      <p><strong>问：</strong>${item.user_message}</p>
-      <p><strong>答：</strong>${item.assistant_message}</p>
-    `;
+    node.appendChild(createTextElement("h4", `第 ${index + 1} 轮`));
+    node.appendChild(createMessageLine("问：", item.user_message));
+    node.appendChild(createMessageLine("答：", item.assistant_message));
     box.appendChild(node);
   });
 }

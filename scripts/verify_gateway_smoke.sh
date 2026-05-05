@@ -25,4 +25,5 @@ curl --noproxy "*" -s -X POST "${BASE_URI}/chat" \
 
 echo
 echo "History response:"
-curl --noproxy "*" -s "${BASE_URI}/history?token=${TOKEN}"
+curl --noproxy "*" -s "${BASE_URI}/history" \
+  -H "Authorization: Bearer ${TOKEN}"

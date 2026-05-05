@@ -32,4 +32,5 @@ Invoke-RestMethod `
 Write-Output "History response:"
 Invoke-RestMethod `
   -Method Get `
-  -Uri ($baseUri + "/history?token=" + $token)
+  -Uri ($baseUri + "/history") `
+  -Headers @{ Authorization = "Bearer $token" }

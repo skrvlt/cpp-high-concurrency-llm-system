@@ -54,6 +54,13 @@ class DocsTests(unittest.TestCase):
         ]:
             self.assertIn(marker, text)
 
+    def test_thesis_api_appendix_matches_actual_chat_endpoint(self):
+        text = (Path.cwd() / "output" / "doc" / "毕业设计说明书初稿.md").read_text(
+            encoding="utf-8"
+        )
+        self.assertIn("POST /api/chat", text)
+        self.assertNotIn("POST /api/ask", text)
+
     def test_thesis_removes_finalization_placeholders(self):
         text = (Path.cwd() / "output" / "doc" / "毕业设计说明书初稿.md").read_text(
             encoding="utf-8"

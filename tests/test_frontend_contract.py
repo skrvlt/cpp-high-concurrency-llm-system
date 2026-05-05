@@ -60,3 +60,19 @@ class FrontendContractTests(unittest.TestCase):
 
         for label in ["用户数", "会话数", "消息数", "日志数", "模型名称"]:
             self.assertIn(label, admin_js)
+
+    def test_frontend_uses_safe_dom_rendering(self):
+        root = Path.cwd()
+        for script_name in ["app.js", "admin.js"]:
+            script = (root / "frontend" / script_name).read_text(encoding="utf-8")
+            with self.subTest(script=script_name):
+                self.assertIn("createTextElement", script)
+                self.assertNotIn(".innerHTML =", script)
+
+    def test_frontend_sends_tokens_with_authorization_header(self):
+        root = Path.cwd()
+        for script_name in ["app.js", "admin.js"]:
+            script = (root / "frontend" / script_name).read_text(encoding="utf-8")
+            with self.subTest(script=script_name):
+                self.assertIn("Authorization", script)
+                self.assertNotIn("?token=", script)

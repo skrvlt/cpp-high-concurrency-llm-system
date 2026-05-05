@@ -16,6 +16,25 @@ const overviewLabels = {
   model_name: "模型名称",
 };
 
+function createTextElement(tag, text, className = "") {
+  const node = document.createElement(tag);
+  if (className) node.className = className;
+  node.textContent = text === undefined || text === null ? "" : String(text);
+  return node;
+}
+
+function adminAuthHeaders() {
+  return { Authorization: `Bearer ${adminToken}` };
+}
+
+function createCard(title, content, className = "message-card") {
+  const node = document.createElement("article");
+  node.className = className;
+  node.appendChild(createTextElement("h4", title));
+  node.appendChild(createTextElement("p", content));
+  return node;
+}
+
 function updateAdminModeBanner() {
   const modeBox = document.getElementById("admin-runtime-mode");
   if (!modeBox) return;
@@ -74,48 +93,43 @@ async function adminLogin() {
 
 async function loadLogs() {
   if (!adminToken) return;
-  const res = await fetch(
-    `${ADMIN_API_BASE}/admin/logs?token=${encodeURIComponent(adminToken)}`
-  );
+  const res = await fetch(`${ADMIN_API_BASE}/admin/logs`, {
+    headers: adminAuthHeaders(),
+  });
   const data = await res.json();
   const box = document.getElementById("logs-box");
-  box.innerHTML = "";
+  box.replaceChildren();
   (data.items || []).forEach((item) => {
-    const node = document.createElement("article");
-    node.className = "message-card";
-    node.innerHTML = `<h4>${item.event_type}</h4><p>${item.message}</p><p>${item.created_at}</p>`;
+    const node = createCard(item.event_type, item.message);
+    node.appendChild(createTextElement("p", item.created_at));
     box.appendChild(node);
   });
 }
 
 async function loadOverview() {
   if (!adminToken) return;
-  const res = await fetch(
-    `${ADMIN_API_BASE}/admin/overview?token=${encodeURIComponent(adminToken)}`
-  );
+  const res = await fetch(`${ADMIN_API_BASE}/admin/overview`, {
+    headers: adminAuthHeaders(),
+  });
   const data = await res.json();
   const box = document.getElementById("overview-box");
-  box.innerHTML = "";
+  box.replaceChildren();
   Object.entries(overviewLabels).forEach(([key, label]) => {
-    const node = document.createElement("article");
-    node.className = "message-card metric-card";
-    node.innerHTML = `<h4>${label}</h4><p>${data[key] ?? "未返回"}</p>`;
+    const node = createCard(label, data[key] ?? "未返回", "message-card metric-card");
     box.appendChild(node);
   });
 }
 
 async function loadConfig() {
   if (!adminToken) return;
-  const res = await fetch(
-    `${ADMIN_API_BASE}/admin/config?token=${encodeURIComponent(adminToken)}`
-  );
+  const res = await fetch(`${ADMIN_API_BASE}/admin/config`, {
+    headers: adminAuthHeaders(),
+  });
   const data = await res.json();
   const box = document.getElementById("config-box");
-  box.innerHTML = "";
+  box.replaceChildren();
   Object.entries(data).forEach(([key, value]) => {
-    const node = document.createElement("article");
-    node.className = "message-card";
-    node.innerHTML = `<h4>${key}</h4><p>${value}</p>`;
+    const node = createCard(key, value);
     box.appendChild(node);
   });
 }
@@ -126,7 +140,7 @@ async function updateConfig() {
   const config_value = document.getElementById("config-value").value.trim();
   await fetch(`${ADMIN_API_BASE}/admin/config`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: { "Content-Type": "application/json", ...adminAuthHeaders() },
     body: JSON.stringify({ token: adminToken, config_key, config_value }),
   });
   await loadConfig();
