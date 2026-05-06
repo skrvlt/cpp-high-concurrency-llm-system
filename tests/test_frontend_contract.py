@@ -76,3 +76,13 @@ class FrontendContractTests(unittest.TestCase):
             with self.subTest(script=script_name):
                 self.assertIn("Authorization", script)
                 self.assertNotIn("?token=", script)
+
+    def test_admin_frontend_displays_benchmark_cards(self):
+        root = Path.cwd()
+        admin_html = (root / "frontend" / "admin.html").read_text(encoding="utf-8")
+        admin_js = (root / "frontend" / "admin.js").read_text(encoding="utf-8")
+
+        self.assertIn("测试结果", admin_html)
+        self.assertIn("benchmark-box", admin_html)
+        self.assertIn("gateway-health.json", admin_js)
+        self.assertIn("gateway-chat.json", admin_js)

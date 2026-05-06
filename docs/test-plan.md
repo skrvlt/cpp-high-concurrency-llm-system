@@ -11,6 +11,8 @@
 5. 配置接口是否支持查询与更新
 6. SQLite 仓储是否能够持久化会话、日志和配置
 7. 项目关键目录与文档是否齐全
+8. 远程模型失败时是否记录降级日志
+9. 知识库检索、问答缓存、流式输出和多模型配置接口是否可用
 
 ## 测试层次
 
@@ -20,6 +22,16 @@
 - `tests/python/test_api.py`
 
 其中 `test_sqlite_repository_persists_sessions_config_and_logs` 用项目内临时 SQLite 文件验证持久化链路，覆盖会话消息、系统配置和日志记录。
+
+P1/P2 增强测试覆盖以下内容：
+
+- `test_remote_model_failure_is_logged_as_fallback`：远程模型异常时返回演示答案并记录 `llm_remote_fallback` 日志。
+- `test_knowledge_base_returns_matching_context`：验证 `knowledge_base/` Markdown 资料可被检索。
+- `test_chat_uses_response_cache_for_repeated_question`：验证重复问题命中缓存，避免重复模型调用。
+- `test_cached_answer_does_not_log_remote_fallback_again`：验证缓存命中不会重复记录远程模型降级日志。
+- `test_chat_stream_endpoint_returns_text_event_stream`：验证 `/api/chat/stream` 返回 `text/event-stream`。
+- `test_admin_can_read_model_providers`：验证管理员可查看多模型配置清单。
+- `test_cors_origin_policy_is_configurable`：验证 CORS 来源由 `APP_CORS_ORIGINS` 控制，而不是全开放。
 
 运行 Python 接口测试前需要安装依赖：
 
@@ -87,3 +99,22 @@ python scripts/benchmark_gateway.py \
 
 - `output/benchmark/gateway-health.json`
 - `output/benchmark/gateway-chat.json`
+
+管理员前端的“测试结果”卡片会读取上述 JSON 文件，展示成功率、吞吐量和 P95 响应时间，便于答辩现场直接说明压测证据。
+
+## P1/P2 回归验证命令
+
+完成 P1/P2 增强后，至少执行以下命令：
+
+```powershell
+python -m unittest discover -s tests -v
+python -m compileall services tests scripts tools
+```
+
+如果当前机器可用 WSL 或 Linux，还应执行：
+
+```bash
+bash scripts/build_gateway_wsl.sh
+```
+
+以上命令分别验证 Python API、服务层缓存与降级、前端契约、文档契约、C++ 网关结构和脚本语法。WSL 构建用于确认 `SendAll` 等网关改动不会破坏 Linux/WSL 编译链路。

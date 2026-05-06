@@ -71,6 +71,24 @@ bool WaitForUpstreamConnect(int fd) {
     return socket_error == 0;
 }
 
+bool SendAll(int fd, const std::string &data) {
+    std::size_t total_sent = 0;
+    while (total_sent < data.size()) {
+        const ssize_t sent = send(fd, data.data() + total_sent, data.size() - total_sent, 0);
+        if (sent < 0) {
+            if (errno == EINTR) {
+                continue;
+            }
+            return false;
+        }
+        if (sent == 0) {
+            return false;
+        }
+        total_sent += static_cast<std::size_t>(sent);
+    }
+    return true;
+}
+
 std::size_t ParseContentLength(const std::string &request) {
     const std::string marker = "Content-Length:";
     const auto header_end = request.find("\r\n\r\n");
@@ -197,7 +215,7 @@ void HttpServer::HandleClient(int client_fd) {
     const auto request_line_end = request.find("\r\n");
     if (request_line_end == std::string::npos) {
         const std::string error = BuildErrorResponse("invalid request line");
-        send(client_fd, error.c_str(), error.size(), 0);
+        SendAll(client_fd, error);
         close(client_fd);
         return;
     }
@@ -207,7 +225,7 @@ void HttpServer::HandleClient(int client_fd) {
     const auto path_end = request_line.find(' ', method_end + 1);
     if (method_end == std::string::npos || path_end == std::string::npos) {
         const std::string error = BuildErrorResponse("invalid request format");
-        send(client_fd, error.c_str(), error.size(), 0);
+        SendAll(client_fd, error);
         close(client_fd);
         return;
     }
@@ -218,13 +236,13 @@ void HttpServer::HandleClient(int client_fd) {
     std::string body = pos == std::string::npos ? "{}" : request.substr(pos + 4);
     if (method != "POST" && method != "GET") {
         const std::string error = BuildErrorResponse("only GET and POST are supported");
-        send(client_fd, error.c_str(), error.size(), 0);
+        SendAll(client_fd, error);
         close(client_fd);
         return;
     }
 
     std::string response = ForwardToUpstream(method, path, body);
-    send(client_fd, response.c_str(), response.size(), 0);
+    SendAll(client_fd, response);
     close(client_fd);
 }
 
@@ -275,7 +293,10 @@ std::string HttpServer::ForwardToUpstream(
         req << body;
     }
     const std::string raw_request = req.str();
-    send(upstream_fd, raw_request.c_str(), raw_request.size(), 0);
+    if (!SendAll(upstream_fd, raw_request)) {
+        close(upstream_fd);
+        return BuildErrorResponse("failed to send upstream request");
+    }
 
     std::string response;
     char response_buffer[kBufferSize];

@@ -1,4 +1,5 @@
 import unittest
+from pathlib import Path
 
 from fastapi.testclient import TestClient
 
@@ -21,6 +22,12 @@ class ApiTests(unittest.TestCase):
         self.assertIn("session_count", body)
         self.assertEqual("memory", body["storage_mode"])
 
+    def test_cors_origin_policy_is_configurable(self):
+        main_source = Path.cwd() / "services" / "ai_service" / "app" / "main.py"
+        text = main_source.read_text(encoding="utf-8")
+        self.assertIn("APP_CORS_ORIGINS", text)
+        self.assertNotIn('allow_origins=["*"]', text)
+
     def test_http_login_and_chat(self):
         login = client.post(
             "/api/login", json={"username": "admin", "password": "admin123"}
@@ -31,6 +38,24 @@ class ApiTests(unittest.TestCase):
         chat = client.post("/api/chat", json={"token": token, "message": "你好"})
         self.assertEqual(200, chat.status_code)
         self.assertIn("answer", chat.json())
+
+    def test_chat_stream_endpoint_returns_text_event_stream(self):
+        login = client.post(
+            "/api/login", json={"username": "student", "password": "student123"}
+        )
+        token = login.json()["token"]
+
+        with client.stream(
+            "POST",
+            "/api/chat/stream",
+            json={"token": token, "message": "流式输出测试"},
+        ) as response:
+            body = "".join(response.iter_text())
+
+        self.assertEqual(200, response.status_code)
+        self.assertIn("text/event-stream", response.headers["content-type"])
+        self.assertIn("data:", body)
+        self.assertIn("[DONE]", body)
 
     def test_history_endpoint_returns_saved_message(self):
         login = client.post(
@@ -107,3 +132,18 @@ class ApiTests(unittest.TestCase):
         self.assertGreaterEqual(body["user_count"], 2)
         self.assertGreaterEqual(body["session_count"], 1)
         self.assertGreaterEqual(body["message_count"], 1)
+
+    def test_admin_can_read_model_providers(self):
+        admin_login = client.post(
+            "/api/login", json={"username": "admin", "password": "admin123"}
+        )
+        token = admin_login.json()["token"]
+        providers = client.get(
+            "/api/admin/model-providers",
+            headers={"Authorization": f"Bearer {token}"},
+        )
+
+        self.assertEqual(200, providers.status_code)
+        body = providers.json()
+        self.assertIn("items", body)
+        self.assertTrue(any(item["name"] == "deepseek" for item in body["items"]))

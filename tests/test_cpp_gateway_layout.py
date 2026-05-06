@@ -83,3 +83,11 @@ class CppGatewayLayoutTests(unittest.TestCase):
         self.assertIn("ParseContentLength", source)
         self.assertIn("Content-Length:", source)
         self.assertIn("request.size() >= expected_request_size", source)
+
+    def test_cpp_gateway_sends_complete_buffers(self):
+        source = (Path.cwd() / "cpp_gateway" / "src" / "http_server.cpp").read_text(
+            encoding="utf-8"
+        )
+        self.assertIn("bool SendAll", source)
+        self.assertIn("SendAll(client_fd", source)
+        self.assertIn("SendAll(upstream_fd", source)

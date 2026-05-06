@@ -31,6 +31,7 @@
 | M6 Testing And Benchmark | Unit tests, API tests, layout tests, runtime checks, gateway benchmark | Completed | `tests/`, `scripts/benchmark_gateway.py`, `output/benchmark/*.json` | Move to M7 thesis finalization |
 | M7 Thesis And Figures | Full thesis, diagrams, tables, screenshots, experiment sections | Completed | `output/doc`, `output/doc/figures`, `docs/figures-guide.md` | Move to M8 defense package |
 | M8 Defense Package | PPT, demo script, Q&A notes, explanation checklist | Completed | `docs/defense`, `output/presentation/答辩PPT大纲.md` | Optional extension: DeepSeek API default integration |
+| M9 P1/P2 Enhancement Foundation | DeepSeek defaults, multi-provider skeleton, knowledge base, cache, streaming, CORS, gateway SendAll, admin benchmark cards | Completed locally | `services/ai_service/app`, `.env.example`, `knowledge_base/`, `frontend/admin.*`, `tests/` | Commit and push `codex/p1-p2-enhancements` |
 
 ## Recommended Module Order
 
@@ -39,6 +40,7 @@
 3. M6 Real Benchmark Evidence
 4. M7 Thesis Finalization
 5. M8 Defense Package
+6. M9 P1/P2 Enhancement Foundation
 
 ## M4 C++ Gateway Strengthening Tasks
 
@@ -248,6 +250,63 @@
 
   Recommended structure: background, requirements, architecture, implementation, test results, innovation points, summary.
 
+## M9 P1/P2 Enhancement Foundation Tasks
+
+**Files:**
+- Modify: `services/ai_service/app/service.py`
+- Modify: `services/ai_service/app/api.py`
+- Modify: `services/ai_service/app/main.py`
+- Modify: `cpp_gateway/src/http_server.cpp`
+- Modify: `frontend/admin.html`
+- Modify: `frontend/admin.js`
+- Modify: `.env.example`
+- Create: `knowledge_base/project-notes.md`
+- Modify: `README.md`, `docs/runbook.md`, `docs/architecture.md`, `docs/test-plan.md`, `docs/defense/qa-notes.md`, `output/presentation/答辩PPT大纲.md`
+- Test: `tests/python/test_api.py`, `tests/python/test_service.py`, `tests/test_cpp_gateway_layout.py`, `tests/test_frontend_contract.py`, `tests/test_docs.py`
+
+- [x] **M9-1 Add provider and DeepSeek defaults**
+
+  Add `.env.example` defaults for `LLM_API_URL`, `LLM_MODEL_NAME=deepseek-v4-flash`, `LLM_PROVIDER`, and `LLM_PROVIDERS_JSON`. Expose `/api/admin/model-providers` for admin inspection without storing secrets.
+
+- [x] **M9-2 Add knowledge base and response cache foundation**
+
+  Read Markdown snippets from `knowledge_base/`, pass matching context into model calls, and cache repeated same user/model/message/context answers.
+
+- [x] **M9-3 Add remote model fallback logging**
+
+  When the remote OpenAI-compatible call fails, return the demo answer and write one `llm_remote_fallback` log for the actual failed call. Cache hits must not duplicate fallback logs.
+
+- [x] **M9-4 Add streaming interface**
+
+  Add `/api/chat/stream` with Server-Sent Events response format while keeping `/api/chat` as the default stable frontend path.
+
+- [x] **M9-5 Tighten runtime boundary**
+
+  Replace wildcard CORS with `APP_CORS_ORIGINS`, and make the C++ gateway send complete response/request buffers through `SendAll`.
+
+- [x] **M9-6 Add admin benchmark display**
+
+  Let the admin page read `output/benchmark/gateway-health.json` and `output/benchmark/gateway-chat.json` into visible testing cards.
+
+- [x] **M9-7 Verify**
+
+  Run:
+
+  ```powershell
+  python -m unittest discover -s tests -v
+  python -m compileall services tests scripts tools
+  ```
+
+  If WSL is available, also run:
+
+  ```bash
+  bash scripts/build_gateway_wsl.sh
+  ```
+
+- [ ] **M9-8 Commit and push**
+
+  Commit the verified P1/P2 work and push `codex/p1-p2-enhancements` to GitHub.
+
 ## End-Of-Task Review Template
 
 After every task, update this section in the next commit or in the module-specific plan.
@@ -265,9 +324,9 @@ Risk or blocker:
 
 ## Current Snapshot
 
-Date: 2026-05-03
-Branch: `codex/defense-package`
-Commit: M6 `65cb88b`, M7 `f4e449b`; M8 pending in current branch
+Date: 2026-05-06
+Branch: `codex/p1-p2-enhancements`
+Commit: M6 `65cb88b`, M7 `f4e449b`; M9 pending verification and commit in current branch
 Completed:
 - M1 foundation runtime mostly completed.
 - M2 Python service first version completed.
@@ -280,10 +339,13 @@ Completed:
 - M6 real benchmark evidence is implemented in local commit `65cb88b`: WSL C++ gateway benchmark JSON files are saved under `output/benchmark`, and Chapter 6 now uses actual measured health/chat values.
 - M7 thesis finalization is implemented in the current working tree: draft placeholders were removed, five core figure assets were generated under `output/doc/figures`, DOCX generation now converts Markdown tables into Word tables and inserts figures into corresponding captions, and Chapter 3-6 wording has been polished for final delivery.
 - M8 defense package is implemented in the current working tree: five-minute demo script, defense Q&A notes, and PPT outline were added with tests.
+- M9 P1/P2 enhancement foundation is implemented in branch `codex/p1-p2-enhancements`: DeepSeek default config, multi-provider admin endpoint, knowledge base retrieval, response cache, stream endpoint, CORS configuration, gateway full-buffer send, and admin benchmark cards are implemented with tests.
+- M9 verification completed with `python -m unittest discover -s tests -v`, `python -m compileall services tests scripts tools`, and WSL `bash scripts/build_gateway_wsl.sh`. WSL build used the script's direct `g++` fallback because `cmake` is not installed in that WSL environment.
 Remaining:
-- Optional extension: connect the Python model client to DeepSeek API with `deepseek-v4-flash` as the default model after confirming API endpoint and key handling.
+- Commit and push M9.
+- Optional extension after M9: implement role-permission details, stronger multi-Agent orchestration, third-party software connectors, and larger Linux benchmark evidence.
 Next recommended task:
-- Verify, commit, and push M8; then decide whether to start the optional DeepSeek API integration module.
+- Run full verification for M9, commit `codex/p1-p2-enhancements`, and push the branch.
 Risk or blocker:
 - External LLM API integration requires a valid API key and should not commit secrets into the repository.
 - Full Linux benchmark evidence is still pending; current gateway evidence is WSL-based and suitable for implementation validation.

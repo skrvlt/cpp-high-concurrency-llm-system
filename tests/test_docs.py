@@ -133,3 +133,16 @@ class DocsTests(unittest.TestCase):
         for text in [readme, runbook, test_plan]:
             self.assertIn("storage_mode", text)
             self.assertIn("APP_STORAGE=sqlite", text)
+
+    def test_docs_and_env_cover_p1_p2_enhancements(self):
+        root = Path.cwd()
+        env = (root / ".env.example").read_text(encoding="utf-8")
+        readme = (root / "README.md").read_text(encoding="utf-8")
+        runbook = (root / "docs" / "runbook.md").read_text(encoding="utf-8")
+
+        self.assertIn("deepseek-v4-flash", env)
+        self.assertIn("https://api.deepseek.com/chat/completions", env)
+        for text in [readme, runbook]:
+            self.assertIn("5 分钟验收路线", text)
+            self.assertIn("知识库检索", text)
+            self.assertIn("多模型配置", text)

@@ -6,6 +6,7 @@ from uuid import uuid4
 from services.ai_service.app.service import (
     AppService,
     DemoModelClient,
+    KnowledgeBase,
     create_repository_from_env,
 )
 from services.ai_service.app.repository import SQLiteRepository
@@ -94,3 +95,77 @@ class ServiceTests(unittest.TestCase):
             repository = create_repository_from_env()
 
         self.assertIsInstance(repository, SQLiteRepository)
+
+    def test_remote_model_failure_is_logged_as_fallback(self):
+        service = AppService()
+        token = service.login("student", "student123")
+        with patch.dict(
+            "os.environ",
+            {
+                "LLM_API_URL": "https://example.invalid/v1/chat/completions",
+                "LLM_API_KEY": "demo-key",
+            },
+            clear=False,
+        ):
+            with patch(
+                "services.ai_service.app.service.urlopen",
+                side_effect=TimeoutError("timeout"),
+            ):
+                reply = service.chat(token, "远程失败降级测试")
+
+        self.assertIn("远程失败降级测试", reply.answer)
+        self.assertTrue(
+            any(log.event_type == "llm_remote_fallback" for log in service.repository.list_logs())
+        )
+
+    def test_knowledge_base_returns_matching_context(self):
+        kb = KnowledgeBase(Path.cwd() / "knowledge_base")
+        context = kb.search("Reactor 模式")
+
+        self.assertIn("Reactor", context)
+
+    def test_chat_uses_response_cache_for_repeated_question(self):
+        class CountingClient:
+            def __init__(self):
+                self.calls = 0
+                self.last_error = None
+                self.last_provider = "counting"
+
+            def answer(self, message, username, config, context=""):
+                self.calls += 1
+                return f"cached-answer-{self.calls}"
+
+        service = AppService()
+        service.model_client = CountingClient()
+        token = service.login("student", "student123")
+
+        first = service.chat(token, "缓存测试")
+        second = service.chat(token, "缓存测试")
+
+        self.assertEqual(first.answer, second.answer)
+        self.assertEqual(1, service.model_client.calls)
+
+    def test_cached_answer_does_not_log_remote_fallback_again(self):
+        service = AppService()
+        token = service.login("student", "student123")
+        with patch.dict(
+            "os.environ",
+            {
+                "LLM_API_URL": "https://example.invalid/v1/chat/completions",
+                "LLM_API_KEY": "demo-key",
+            },
+            clear=False,
+        ):
+            with patch(
+                "services.ai_service.app.service.urlopen",
+                side_effect=TimeoutError("timeout"),
+            ):
+                service.chat(token, "缓存后的降级日志测试")
+                service.chat(token, "缓存后的降级日志测试")
+
+        fallback_logs = [
+            log
+            for log in service.repository.list_logs()
+            if log.event_type == "llm_remote_fallback"
+        ]
+        self.assertEqual(1, len(fallback_logs))

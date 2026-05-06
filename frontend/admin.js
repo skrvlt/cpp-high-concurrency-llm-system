@@ -120,6 +120,34 @@ async function loadOverview() {
   });
 }
 
+async function fetchBenchmark(fileName) {
+  const response = await fetch(`../output/benchmark/${fileName}`);
+  if (!response.ok) {
+    throw new Error(`无法读取 ${fileName}`);
+  }
+  return response.json();
+}
+
+async function loadBenchmarkResults() {
+  const box = document.getElementById("benchmark-box");
+  if (!box) return;
+  box.replaceChildren();
+  try {
+    const results = await Promise.all([
+      fetchBenchmark("gateway-health.json"),
+      fetchBenchmark("gateway-chat.json"),
+    ]);
+    results.forEach((item) => {
+      const summary =
+        `${item.scenario}: ${item.success_rate_percent}% 成功率, ` +
+        `${item.throughput_rps} req/s, P95 ${item.p95_latency_ms} ms`;
+      box.appendChild(createCard("网关压测", summary, "message-card metric-card"));
+    });
+  } catch (error) {
+    box.appendChild(createCard("压测数据", error.message || "读取失败"));
+  }
+}
+
 async function loadConfig() {
   if (!adminToken) return;
   const res = await fetch(`${ADMIN_API_BASE}/admin/config`, {
@@ -153,6 +181,7 @@ updateAdminModeBanner();
 loadAdminHealthStatus();
 document.getElementById("admin-login-btn").addEventListener("click", adminLogin);
 document.getElementById("load-overview-btn").addEventListener("click", loadOverview);
+document.getElementById("load-benchmark-btn").addEventListener("click", loadBenchmarkResults);
 document.getElementById("load-logs-btn").addEventListener("click", loadLogs);
 document.getElementById("load-config-btn").addEventListener("click", loadConfig);
 document.getElementById("update-config-btn").addEventListener("click", updateConfig);

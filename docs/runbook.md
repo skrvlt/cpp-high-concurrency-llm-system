@@ -30,6 +30,15 @@ python -m pip install -r requirements.txt
 
 项目根目录提供 `.env.example`。建议先按该文件统一模型接口地址和端口参数，再启动服务。
 
+模型与接口安全相关参数包括：
+
+- `LLM_API_URL`：OpenAI-compatible chat completions 接口地址
+- `LLM_API_KEY`：真实模型 API Key，不应提交到版本库
+- `LLM_MODEL_NAME`：默认模型名，当前模板为 `deepseek-v4-flash`
+- `LLM_PROVIDER`：当前默认 provider 名称
+- `LLM_PROVIDERS_JSON`：多模型配置清单，不存放密钥
+- `APP_CORS_ORIGINS`：允许访问 Python API 的前端来源列表
+
 数据存储相关参数包括：
 
 - `APP_STORAGE`：默认 `memory`；设置为 `sqlite` 时启用本地持久化仓储
@@ -42,6 +51,15 @@ python -m pip install -r requirements.txt
 - `UPSTREAM_PORT`
 
 ## Windows 运行
+
+## 5 分钟验收路线
+
+1. 安装依赖：`python -m pip install -r requirements.txt`。
+2. 启动 API：`.\scripts\start_api.ps1`。
+3. 打开 `http://127.0.0.1:8000/api/health` 验证健康检查。
+4. 启动前端：`.\scripts\start_frontend.ps1`。
+5. 打开用户端页面并使用 `student / student123` 完成问答。
+6. 打开管理员页面并使用 `admin / admin123` 查看系统概览、测试结果和日志。
 
 ### 1. 启动 Python 服务
 
@@ -115,6 +133,23 @@ bash scripts/verify_gateway_smoke.sh
 - `http://127.0.0.1:5500/frontend/admin.html?mode=gateway`
 
 ## 真实大模型接口配置
+
+默认模板面向 DeepSeek OpenAI-compatible 接口：
+
+```powershell
+$env:LLM_API_URL="https://api.deepseek.com/chat/completions"
+$env:LLM_API_KEY="你的 API Key"
+$env:LLM_MODEL_NAME="deepseek-v4-flash"
+$env:LLM_PROVIDER="deepseek"
+```
+
+如需多模型配置，可使用 `LLM_PROVIDERS_JSON` 描述多个 provider。该字段只记录 provider 名称、接口地址、模型名和启用状态，不应写入密钥。管理员接口 `/api/admin/model-providers` 可查看当前多模型配置。
+
+项目还提供轻量级知识库检索，默认读取 `knowledge_base/` 下的 Markdown 文件。问答命中知识库时，会把相关片段拼接到模型上下文中。重复问题会命中缓存，从而减少重复模型调用。
+
+普通问答接口为 `/api/chat`，一次性返回完整 JSON；流式问答接口为 `/api/chat/stream`，使用 Server-Sent Events 返回 `text/event-stream`，适合作为后续前端打字机式输出的扩展入口。当前前端默认仍使用 `/api/chat`，避免答辩演示依赖浏览器流式渲染细节。
+
+如果真实模型不可用，服务会自动回退到演示回答，并在日志中记录 `llm_remote_fallback`。管理员页面可通过日志说明系统具备失败降级能力，而不是直接中断主业务链路。
 
 ### Windows PowerShell
 

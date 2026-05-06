@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from fastapi import APIRouter, Header, HTTPException, Query
+from fastapi.responses import StreamingResponse
 
 from .models import (
     ChatRequest,
@@ -56,6 +57,22 @@ def chat(payload: ChatRequest):
         raise HTTPException(status_code=401, detail=str(exc)) from exc
 
 
+@router.post("/chat/stream")
+def chat_stream(payload: ChatRequest):
+    try:
+        response = service.chat(payload.token, payload.message)
+    except ValueError as exc:
+        raise HTTPException(status_code=401, detail=str(exc)) from exc
+
+    def events():
+        answer = response.answer
+        for index in range(0, len(answer), 24):
+            yield f"data: {answer[index:index + 24]}\n\n"
+        yield "data: [DONE]\n\n"
+
+    return StreamingResponse(events(), media_type="text/event-stream")
+
+
 @router.get("/history")
 def history(
     token: str | None = Query(default=None),
@@ -104,6 +121,20 @@ def overview(
     try:
         token = resolve_token(token, authorization)
         return service.overview(token)
+    except ValueError as exc:
+        raise HTTPException(status_code=401, detail=str(exc)) from exc
+    except PermissionError as exc:
+        raise HTTPException(status_code=403, detail=str(exc)) from exc
+
+
+@router.get("/admin/model-providers")
+def model_providers(
+    token: str | None = Query(default=None),
+    authorization: str | None = Header(default=None),
+):
+    try:
+        token = resolve_token(token, authorization)
+        return {"items": service.model_providers(token)}
     except ValueError as exc:
         raise HTTPException(status_code=401, detail=str(exc)) from exc
     except PermissionError as exc:

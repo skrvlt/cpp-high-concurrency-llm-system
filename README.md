@@ -45,6 +45,9 @@
 - `LLM_API_URL`
 - `LLM_API_KEY`
 - `LLM_MODEL_NAME`
+- `LLM_PROVIDER`
+- `LLM_PROVIDERS_JSON`
+- `APP_CORS_ORIGINS`
 - `APP_STORAGE`
 - `SQLITE_DB_PATH`
 - `API_PORT`
@@ -68,6 +71,17 @@ python -m pip install -r requirements.txt
 ```
 
 ## 运行方式
+
+## 5 分钟验收路线
+
+1. 执行 `python -m pip install -r requirements.txt` 安装依赖。
+2. 执行 `.\scripts\start_api.ps1` 启动 Python API。
+3. 打开 `http://127.0.0.1:8000/api/health`，确认服务返回 `status=ok`。
+4. 执行 `.\scripts\start_frontend.ps1` 启动前端静态服务。
+5. 打开 `http://127.0.0.1:5500/frontend/index.html`，使用 `student / student123` 登录并提问。
+6. 打开 `http://127.0.0.1:5500/frontend/admin.html`，使用 `admin / admin123` 查看系统概览、测试结果和日志。
+
+该路线不依赖外部 API Key，适合教师快速验收项目是否可运行。
 
 ### Windows
 
@@ -108,13 +122,36 @@ bash scripts/verify_gateway_smoke.sh
 
 统一健康检查接口为 `/api/health`，返回服务状态、运行模式、存储模式、模型名称和会话数量，可用于三类环境下的最小可运行验证。其中 `storage_mode` 用于区分当前是 `memory` 还是 `sqlite`。
 
+## 稳定接口
+
+当前版本保持以下接口契约稳定：
+
+- `/api/login`：用户登录，返回 token、角色和会话编号。
+- `/api/chat`：普通问答接口，返回完整回答。
+- `/api/chat/stream`：Server-Sent Events 流式问答接口，返回 `text/event-stream`。
+- `/api/history`：返回当前会话历史记录。
+- `/api/admin/logs`：管理员查看运行日志。
+- `/api/admin/config`：管理员查看或修改模型配置。
+- `/api/admin/overview`：管理员查看系统概览。
+- `/api/admin/model-providers`：管理员查看多模型配置清单。
+
 ## 真实大模型接口
 
-未配置环境变量时，系统使用演示模式回答；配置后可接真实模型：
+未配置 API Key 时，系统使用演示模式回答；配置后可接真实模型。默认模板采用 DeepSeek 的 OpenAI-compatible chat completions 形式：
 
 - `LLM_API_URL`
 - `LLM_API_KEY`
 - `LLM_MODEL_NAME`
+- `LLM_PROVIDER`
+- `LLM_PROVIDERS_JSON`
+
+`.env.example` 默认给出 `https://api.deepseek.com/chat/completions` 和 `deepseek-v4-flash`。如果要接入其他 OpenAI-compatible 服务，只需要替换 URL、Key 和模型名。系统支持多模型配置骨架：可通过 `LLM_PROVIDERS_JSON` 声明多个 provider，后台接口 `/api/admin/model-providers` 会返回当前模型配置清单。
+
+`APP_CORS_ORIGINS` 用于限制允许访问 Python API 的前端来源，默认允许 `127.0.0.1:5500` 和 `localhost:5500`。如果部署到其他地址，应把实际前端地址加入该变量，而不是恢复为全开放配置。
+
+## 知识库检索与缓存
+
+项目提供轻量级知识库检索能力，默认读取 `knowledge_base/` 下的 Markdown 文件。用户提问命中知识库内容时，系统会把相关片段作为参考资料传给模型或演示回答逻辑。系统还提供问答缓存，同一用户、同一模型、同一问题和同一知识库上下文会复用已生成回答，降低重复调用成本。远程模型调用失败时，系统会返回演示回答并写入 `llm_remote_fallback` 日志，便于管理员页面解释降级原因。
 
 ## 数据存储模式
 
