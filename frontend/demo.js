@@ -32,6 +32,85 @@ function createDemoElement(tag, text, className = "") {
   return node;
 }
 
+function renderHealthBars(items) {
+  const box = document.getElementById("demo-health-bars");
+  if (!box) return;
+  box.replaceChildren();
+  items.forEach((item) => {
+    const row = document.createElement("div");
+    row.className = "health-bar-row";
+    const label = createDemoElement("span", item.label);
+    const track = document.createElement("div");
+    track.className = "health-bar-track";
+    const fill = document.createElement("div");
+    fill.className = "health-bar-fill";
+    fill.style.width = `${item.score}%`;
+    track.appendChild(fill);
+    const value = createDemoElement("strong", item.value);
+    row.append(label, track, value);
+    box.appendChild(row);
+  });
+}
+
+function renderHealthVisualization(data) {
+  const healthy = data.status === "ok";
+  const hasStorage = Boolean(data.storage_mode);
+  const hasModel = Boolean(data.model_name);
+  const providerCount = Number(data.provider_count || 0);
+  const sessionCount = Number(data.session_count || 0);
+  const score =
+    (healthy ? 35 : 0) +
+    (hasStorage ? 20 : 0) +
+    (hasModel ? 20 : 0) +
+    (providerCount > 0 ? 15 : 0) +
+    (Number.isFinite(sessionCount) ? 10 : 0);
+
+  const ring = document.getElementById("demo-health-ring");
+  if (ring) {
+    ring.style.setProperty("--score", `${score}%`);
+    ring.classList.toggle("is-healthy", healthy);
+  }
+  setDemoText("demo-health-score", score);
+  setDemoText("demo-health-title", healthy ? "Python FastAPI 服务运行正常" : "后端服务异常");
+  setDemoText(
+    "demo-health-detail",
+    `运行模式：${data.runtime_mode || "未知"}，存储：${data.storage_mode || "未知"}，模型：${data.model_name || "未知"}`
+  );
+  setDemoText("demo-session-count", data.session_count);
+  const jsonBox = document.getElementById("demo-health-json");
+  if (jsonBox) jsonBox.textContent = JSON.stringify(data, null, 2);
+  renderHealthBars([
+    { label: "服务连通", score: healthy ? 100 : 0, value: data.status || "failed" },
+    { label: "存储模式", score: hasStorage ? 100 : 0, value: data.storage_mode || "missing" },
+    { label: "模型配置", score: hasModel ? 100 : 0, value: data.model_name || "missing" },
+    { label: "供应商数", score: Math.min(providerCount * 50, 100), value: providerCount },
+    { label: "会话记录", score: sessionCount > 0 ? 100 : 30, value: sessionCount },
+  ]);
+}
+
+function renderHealthFailure(error) {
+  const ring = document.getElementById("demo-health-ring");
+  if (ring) {
+    ring.style.setProperty("--score", "0%");
+    ring.classList.remove("is-healthy");
+  }
+  setDemoText("demo-health-score", 0);
+  setDemoText("demo-health-title", "后端服务未连接");
+  setDemoText("demo-health-detail", error.message || "无法读取 /api/health");
+  setDemoText("demo-session-count", "未连接");
+  const jsonBox = document.getElementById("demo-health-json");
+  if (jsonBox) {
+    jsonBox.textContent = JSON.stringify({ error: error.message || String(error) }, null, 2);
+  }
+  renderHealthBars([
+    { label: "服务连通", score: 0, value: "failed" },
+    { label: "存储模式", score: 0, value: "unknown" },
+    { label: "模型配置", score: 0, value: "unknown" },
+    { label: "供应商数", score: 0, value: "unknown" },
+    { label: "会话记录", score: 0, value: "unknown" },
+  ]);
+}
+
 async function loadDemoHealth() {
   setDemoText("demo-api-base", DEMO_API_BASE);
   const healthLink = document.getElementById("health-link");
@@ -44,11 +123,13 @@ async function loadDemoHealth() {
     setDemoText("demo-storage-mode", data.storage_mode);
     setDemoText("demo-model-name", data.model_name);
     setDemoText("demo-provider-count", data.provider_count);
+    renderHealthVisualization(data);
   } catch (error) {
     setDemoText("demo-health-status", "连接失败");
     setDemoText("demo-storage-mode", "未连接");
     setDemoText("demo-model-name", "未连接");
     setDemoText("demo-provider-count", "未连接");
+    renderHealthFailure(error);
   }
 }
 

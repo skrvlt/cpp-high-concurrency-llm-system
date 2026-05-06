@@ -54,8 +54,18 @@
 
       <aside class="panel demo-runtime">
         <div class="panel-header">
-          <h2>运行状态</h2>
+          <h2>后端健康检查可视化</h2>
           <button id="demo-refresh-btn">刷新</button>
+        </div>
+        <div class="health-visual-card">
+          <div class="health-ring" id="demo-health-ring">
+            <strong id="demo-health-score">0</strong>
+            <span>健康评分</span>
+          </div>
+          <div class="health-summary">
+            <p id="demo-health-title">等待检测</p>
+            <span id="demo-health-detail">正在读取 /api/health</span>
+          </div>
         </div>
         <div class="status-grid">
           <article class="status-card wide">
@@ -78,7 +88,16 @@
             <span>模型供应商</span>
             <strong id="demo-provider-count">未检测</strong>
           </article>
+          <article class="status-card">
+            <span>会话数</span>
+            <strong id="demo-session-count">未检测</strong>
+          </article>
         </div>
+        <div class="health-bars" id="demo-health-bars"></div>
+        <details class="health-json-box">
+          <summary>原始 JSON</summary>
+          <pre id="demo-health-json">{}</pre>
+        </details>
       </aside>
     </section>
 

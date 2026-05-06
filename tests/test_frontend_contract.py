@@ -119,8 +119,13 @@ class FrontendContractTests(unittest.TestCase):
             "SQLite / 日志",
             "压测结果",
             "5 分钟录制脚本",
+            "后端健康检查可视化",
+            "健康评分",
+            "原始 JSON",
         ]:
             self.assertIn(marker, demo_html + demo_js)
         self.assertIn("gateway-health.json", demo_js)
         self.assertIn("gateway-chat.json", demo_js)
         self.assertIn("/api/health", demo_js)
+        self.assertIn("renderHealthVisualization", demo_js)
+        self.assertIn("demo-health-json", demo_html)
