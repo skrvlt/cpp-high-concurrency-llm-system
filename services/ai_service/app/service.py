@@ -12,18 +12,74 @@ from .models import ChatResponse, HistoryResponse, LogEntry, TokenState
 from .repository import InMemoryRepository, Repository, SQLiteRepository
 
 
+def load_local_env(path: str | Path = ".env.local") -> None:
+    env_path = Path(path)
+    if not env_path.exists():
+        return
+    for raw_line in env_path.read_text(encoding="utf-8").splitlines():
+        line = raw_line.strip()
+        if not line or line.startswith("#") or "=" not in line:
+            continue
+        key, value = line.split("=", 1)
+        key = key.strip()
+        value = value.strip().strip('"').strip("'")
+        if key and key not in os.environ:
+            os.environ[key] = value
+
+
+load_local_env()
+
+
 DEFAULT_MODEL_PROVIDERS = [
     {
         "name": "deepseek",
+        "display_name": "DeepSeek",
         "api_url": "https://api.deepseek.com/chat/completions",
-        "model": "deepseek-v4-flash",
+        "api_key_env": "DEEPSEEK_API_KEY",
         "enabled": True,
     },
     {
-        "name": "openai_compatible",
-        "api_url": "",
-        "model": "",
-        "enabled": False,
+        "name": "mimo",
+        "display_name": "MiMo (小米)",
+        "api_url": "https://api.xiaomimimo.com/v1/chat/completions",
+        "api_key_env": "MIMO_API_KEY",
+        "api_key_fallback_env": "XIAOMI_API_KEY",
+        "enabled": True,
+    },
+]
+
+DEFAULT_MODEL_CATALOG = [
+    {
+        "provider": "deepseek",
+        "model": "deepseek-v4-pro",
+        "alias": "DS-Pro",
+        "context_window": 1_000_000,
+        "max_output_tokens": 65_536,
+        "enabled": True,
+    },
+    {
+        "provider": "deepseek",
+        "model": "deepseek-v4-flash",
+        "alias": "DS-Flash",
+        "context_window": 1_000_000,
+        "max_output_tokens": 65_536,
+        "enabled": True,
+    },
+    {
+        "provider": "mimo",
+        "model": "mimo-v2.5-pro",
+        "alias": "MiMo-Pro",
+        "context_window": 1_000_000,
+        "max_output_tokens": 65_536,
+        "enabled": True,
+    },
+    {
+        "provider": "mimo",
+        "model": "mimo-v2.5",
+        "alias": "MiMo",
+        "context_window": 1_000_000,
+        "max_output_tokens": 65_536,
+        "enabled": True,
     },
 ]
 
@@ -32,7 +88,19 @@ DEFAULT_MODEL_PROVIDERS = [
 class ModelProvider:
     name: str
     api_url: str
+    display_name: str
+    api_key_env: str
+    api_key_fallback_env: str = ""
+    enabled: bool = True
+
+
+@dataclass
+class ModelCatalogItem:
+    provider: str
     model: str
+    alias: str
+    context_window: int
+    max_output_tokens: int
     enabled: bool = True
 
 
@@ -71,7 +139,9 @@ def load_model_providers() -> list[ModelProvider]:
                 ModelProvider(
                     name=str(item.get("name", "provider")),
                     api_url=str(item.get("api_url", "")),
-                    model=str(item.get("model", "")),
+                    display_name=str(item.get("display_name", item.get("name", "provider"))),
+                    api_key_env=str(item.get("api_key_env", "")),
+                    api_key_fallback_env=str(item.get("api_key_fallback_env", "")),
                     enabled=bool(item.get("enabled", True)),
                 )
                 for item in raw_items
@@ -83,11 +153,71 @@ def load_model_providers() -> list[ModelProvider]:
         ModelProvider(
             name=str(item["name"]),
             api_url=str(item["api_url"]),
-            model=str(item["model"]),
+            display_name=str(item["display_name"]),
+            api_key_env=str(item["api_key_env"]),
+            api_key_fallback_env=str(item.get("api_key_fallback_env", "")),
             enabled=bool(item["enabled"]),
         )
         for item in DEFAULT_MODEL_PROVIDERS
     ]
+
+
+def load_model_catalog() -> list[ModelCatalogItem]:
+    configured = os.getenv("LLM_MODELS_JSON", "").strip()
+    if configured:
+        try:
+            raw_items = json.loads(configured)
+            return [
+                ModelCatalogItem(
+                    provider=str(item.get("provider", "")),
+                    model=str(item.get("model", "")),
+                    alias=str(item.get("alias", item.get("model", ""))),
+                    context_window=int(item.get("context_window", 0)),
+                    max_output_tokens=int(item.get("max_output_tokens", 0)),
+                    enabled=bool(item.get("enabled", True)),
+                )
+                for item in raw_items
+            ]
+        except Exception:
+            pass
+
+    return [
+        ModelCatalogItem(
+            provider=str(item["provider"]),
+            model=str(item["model"]),
+            alias=str(item["alias"]),
+            context_window=int(item["context_window"]),
+            max_output_tokens=int(item["max_output_tokens"]),
+            enabled=bool(item["enabled"]),
+        )
+        for item in DEFAULT_MODEL_CATALOG
+    ]
+
+
+def resolve_provider(name: str | None) -> ModelProvider:
+    providers = [provider for provider in load_model_providers() if provider.enabled]
+    if name:
+        for provider in providers:
+            if provider.name == name:
+                return provider
+        raise ValueError(f"未知模型供应商: {name}")
+    return providers[0]
+
+
+def resolve_model(provider_name: str, model_name: str | None) -> ModelCatalogItem:
+    models = [
+        item
+        for item in load_model_catalog()
+        if item.enabled and item.provider == provider_name
+    ]
+    if model_name:
+        for item in models:
+            if item.model == model_name:
+                return item
+        raise ValueError(f"未知模型: {provider_name}/{model_name}")
+    if not models:
+        raise ValueError(f"模型供应商没有可用模型: {provider_name}")
+    return models[0]
 
 
 class DemoModelClient:
@@ -96,14 +226,22 @@ class DemoModelClient:
         self.last_provider = "demo"
 
     def answer(
-        self, message: str, username: str, config: Dict[str, str], context: str = ""
+        self,
+        message: str,
+        username: str,
+        config: Dict[str, str],
+        context: str = "",
+        provider: ModelProvider | None = None,
+        model: ModelCatalogItem | None = None,
     ) -> str:
         self.last_error = None
-        remote_answer = self._try_remote_answer(message, username, config, context)
+        remote_answer = self._try_remote_answer(
+            message, username, config, context, provider, model
+        )
         if remote_answer:
             return remote_answer
 
-        model_name = config.get("model_name", "demo-llm")
+        model_name = model.model if model else config.get("model_name", "demo-llm")
         context_text = f"参考资料命中：{context}。" if context else ""
         return (
             f"[{model_name}] 已收到来自 {username} 的问题：{message}。"
@@ -112,31 +250,58 @@ class DemoModelClient:
         )
 
     def _try_remote_answer(
-        self, message: str, username: str, config: Dict[str, str], context: str
+        self,
+        message: str,
+        username: str,
+        config: Dict[str, str],
+        context: str,
+        provider: ModelProvider | None,
+        model: ModelCatalogItem | None,
     ) -> str | None:
-        api_url = os.getenv("LLM_API_URL", "").strip() or config.get("llm_api_url", "")
-        api_key = os.getenv("LLM_API_KEY", "").strip()
-        model_name = os.getenv("LLM_MODEL_NAME", config.get("model_name", "demo-llm"))
+        api_url = (
+            provider.api_url
+            if provider
+            else os.getenv("LLM_API_URL", "").strip() or config.get("llm_api_url", "")
+        )
+        api_key = ""
+        if provider:
+            api_key = os.getenv(provider.api_key_env, "").strip()
+            if not api_key and provider.api_key_fallback_env:
+                api_key = os.getenv(provider.api_key_fallback_env, "").strip()
+            if not api_key:
+                api_key = os.getenv("LLM_API_KEY", "").strip()
+        else:
+            api_key = os.getenv("LLM_API_KEY", "").strip()
+        model_name = (
+            model.model
+            if model
+            else os.getenv("LLM_MODEL_NAME", config.get("model_name", "demo-llm"))
+        )
         if not api_url:
             return None
-        self.last_provider = os.getenv("LLM_PROVIDER", "openai_compatible")
+        self.last_provider = provider.name if provider else os.getenv(
+            "LLM_PROVIDER", "openai_compatible"
+        )
+        if not api_key:
+            return None
+
+        system_prompt = "你是一个用于毕业设计演示的智能问答助手，请用简洁、专业的中文回答。"
+        if context:
+            system_prompt = f"{system_prompt} 可参考资料：{context}"
 
         payload = {
             "model": model_name,
             "messages": [
                 {
                     "role": "system",
-                    "content": (
-                        "你是一个用于毕业设计演示的智能问答助手，请用简洁、专业的中文回答。"
-                        f"可参考资料：{context}" if context else
-                        "你是一个用于毕业设计演示的智能问答助手，请用简洁、专业的中文回答。"
-                    ),
+                    "content": system_prompt,
                 },
                 {
                     "role": "user",
                     "content": f"用户 {username} 的问题是：{message}",
                 },
             ],
+            "max_tokens": model.max_output_tokens if model else 2048,
         }
         headers = {"Content-Type": "application/json"}
         if api_key:
@@ -212,16 +377,25 @@ class AppService:
             raise ValueError("无效 token")
         return state
 
-    def chat(self, token: str, message: str) -> ChatResponse:
+    def chat(
+        self, token: str, message: str, provider_name: str | None = None, model_name: str | None = None
+    ) -> ChatResponse:
         state = self.get_token_state(token)
         config = self.repository.get_config()
+        provider = resolve_provider(provider_name or os.getenv("LLM_PROVIDER", "deepseek"))
+        model = resolve_model(
+            provider.name,
+            model_name or os.getenv("LLM_MODEL_NAME", ""),
+        )
         context = self.knowledge_base.search(message)
-        cache_key = f"{state.username}|{config.get('model_name', 'demo-llm')}|{message}|{context}"
+        cache_key = f"{state.username}|{provider.name}|{model.model}|{message}|{context}"
         if cache_key in self.response_cache:
             answer = self.response_cache[cache_key]
             used_cache = True
         else:
-            answer = self.model_client.answer(message, state.username, config, context)
+            answer = self.model_client.answer(
+                message, state.username, config, context, provider, model
+            )
             self.response_cache[cache_key] = answer
             used_cache = False
         if not used_cache and getattr(self.model_client, "last_error", None):
@@ -241,8 +415,94 @@ class AppService:
             )
         )
         return ChatResponse(
-            session_id=session.id, answer=answer, history_size=len(session.entries)
+            session_id=session.id,
+            answer=answer,
+            history_size=len(session.entries),
+            provider=provider.name,
+            model=model.model,
         )
+
+    def models(self):
+        providers = {provider.name: provider for provider in load_model_providers()}
+        return [
+            {
+                "provider": item.provider,
+                "provider_name": providers.get(item.provider).display_name
+                if providers.get(item.provider)
+                else item.provider,
+                "model": item.model,
+                "alias": item.alias,
+                "context_window": item.context_window,
+                "max_output_tokens": item.max_output_tokens,
+                "enabled": item.enabled and providers.get(item.provider, None) is not None,
+            }
+            for item in load_model_catalog()
+        ]
+
+    def collaborate(self, token: str, message: str, participants: list[dict[str, str]]):
+        state = self.get_token_state(token)
+        config = self.repository.get_config()
+        context = self.knowledge_base.search(message)
+        selected = participants or [
+            {"provider": "deepseek", "model": "deepseek-v4-pro"},
+            {"provider": "mimo", "model": "mimo-v2.5"},
+        ]
+
+        rounds = []
+        prior_answers = ""
+        for index, participant in enumerate(selected, start=1):
+            provider = resolve_provider(participant.get("provider"))
+            model = resolve_model(provider.name, participant.get("model"))
+            prompt = message
+            if prior_answers:
+                prompt = (
+                    f"用户原问题：{message}\n"
+                    f"其他模型已有回答：{prior_answers}\n"
+                    "请你指出可以补充或修正的地方，并给出自己的答案。"
+                )
+            answer = self.model_client.answer(
+                prompt, state.username, config, context, provider, model
+            )
+            if getattr(self.model_client, "last_error", None):
+                self.repository.add_log(
+                    LogEntry(
+                        level="WARN",
+                        event_type="llm_remote_fallback",
+                        message=(
+                            f"{provider.name}/{model.model} 远程模型调用失败，"
+                            f"已降级到演示模式: {self.model_client.last_error}"
+                        ),
+                    )
+                )
+            rounds.append(
+                {
+                    "round": index,
+                    "provider": provider.name,
+                    "model": model.model,
+                    "answer": answer,
+                }
+            )
+            prior_answers = f"{prior_answers}\n[{provider.name}/{model.model}] {answer}".strip()
+
+        final_answer = (
+            f"多模型协作结果：针对“{message}”，系统综合 "
+            f"{len(rounds)} 个模型的回答后得到以下结论。\n"
+            f"{prior_answers}"
+        )
+        session = self.repository.append_message(state.session_id, message, final_answer)
+        self.repository.add_log(
+            LogEntry(
+                level="INFO",
+                event_type="model_collaboration",
+                message=f"用户 {state.username} 发起多模型协作问答",
+            )
+        )
+        return {
+            "session_id": session.id,
+            "final_answer": final_answer,
+            "rounds": rounds,
+            "history_size": len(session.entries),
+        }
 
     def history(self, token: str) -> HistoryResponse:
         state = self.get_token_state(token)
@@ -322,7 +582,8 @@ class AppService:
             {
                 "name": provider.name,
                 "api_url": provider.api_url,
-                "model": provider.model,
+                "display_name": provider.display_name,
+                "api_key_env": provider.api_key_env,
                 "enabled": provider.enabled,
             }
             for provider in providers

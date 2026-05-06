@@ -8,7 +8,9 @@ const endpointConfig =
 const API_BASE = endpointConfig.API_BASE;
 const LOGIN_ENDPOINT = "/api/login";
 const CHAT_ENDPOINT = "/api/chat";
+const MODELS_ENDPOINT = "/api/models";
 let authToken = "";
+let modelCatalog = [];
 
 function createTextElement(tag, text, className = "") {
   const node = document.createElement(tag);
@@ -57,6 +59,47 @@ function renderHealthStatus(data) {
   setText("health-session-count", data.session_count);
 }
 
+function selectedModel() {
+  const value = document.getElementById("model-select").value;
+  const item = modelCatalog.find((model) => `${model.provider}/${model.model}` === value);
+  return item || modelCatalog[0] || { provider: "deepseek", model: "deepseek-v4-flash" };
+}
+
+function renderModelMeta() {
+  const item = selectedModel();
+  const meta = document.getElementById("model-meta");
+  if (!meta || !item) return;
+  meta.textContent =
+    `${item.provider_name || item.provider} / ${item.alias || item.model}，` +
+    `上下文窗口：${item.context_window || "未配置"}，最大输出：${item.max_output_tokens || "未配置"}`;
+}
+
+async function loadModels() {
+  const select = document.getElementById("model-select");
+  if (!select) return;
+  try {
+    const res = await fetch(`${API_BASE}${MODELS_ENDPOINT.replace("/api", "")}`);
+    const data = await res.json();
+    modelCatalog = (data.items || []).filter((item) => item.enabled !== false);
+    select.replaceChildren();
+    modelCatalog.forEach((item) => {
+      const option = document.createElement("option");
+      option.value = `${item.provider}/${item.model}`;
+      option.textContent = `${item.provider_name || item.provider} - ${item.alias || item.model}`;
+      select.appendChild(option);
+    });
+    renderModelMeta();
+  } catch (error) {
+    select.replaceChildren();
+    const option = document.createElement("option");
+    option.value = "deepseek/deepseek-v4-flash";
+    option.textContent = "DeepSeek - DS-Flash";
+    select.appendChild(option);
+    modelCatalog = [{ provider: "deepseek", model: "deepseek-v4-flash", alias: "DS-Flash" }];
+    renderModelMeta();
+  }
+}
+
 async function loadHealthStatus() {
   setText("api-base-value", API_BASE);
   try {
@@ -103,17 +146,55 @@ async function sendMessage() {
   if (!message) return;
 
   appendMessage("我", message);
+  const selected = selectedModel();
   const res = await fetch(`${API_BASE}${CHAT_ENDPOINT.replace("/api", "")}`, {
     method: "POST",
     headers: { "Content-Type": "application/json", ...authHeaders() },
-    body: JSON.stringify({ token: authToken, message }),
+    body: JSON.stringify({
+      token: authToken,
+      message,
+      provider: selected.provider,
+      model: selected.model,
+    }),
   });
   const data = await res.json();
   if (!res.ok) {
     appendMessage("错误", data.detail || "发送失败");
     return;
   }
-  appendMessage("系统回答", data.answer);
+  appendMessage(`系统回答 ${data.provider || selected.provider}/${data.model || selected.model}`, data.answer);
+  document.getElementById("message").value = "";
+  await loadHistory();
+  await loadHealthStatus();
+}
+
+async function collaborate() {
+  if (!authToken) {
+    document.getElementById("auth-status").textContent = "请先登录";
+    return;
+  }
+  const message = document.getElementById("message").value.trim();
+  if (!message) return;
+
+  appendMessage("我", `${message}（多模型协作）`);
+  const participants = modelCatalog.slice(0, 4).map((item) => ({
+    provider: item.provider,
+    model: item.model,
+  }));
+  const res = await fetch(`${API_BASE}/chat/collaborate`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...authHeaders() },
+    body: JSON.stringify({ token: authToken, message, participants }),
+  });
+  const data = await res.json();
+  if (!res.ok) {
+    appendMessage("错误", data.detail || "多模型协作失败");
+    return;
+  }
+  appendMessage("多模型协作结论", data.final_answer);
+  (data.rounds || []).forEach((item) => {
+    appendMessage(`${item.provider}/${item.model}`, item.answer);
+  });
   document.getElementById("message").value = "";
   await loadHistory();
   await loadHealthStatus();
@@ -138,7 +219,10 @@ async function loadHistory() {
 
 updateModeBanner();
 loadHealthStatus();
+loadModels();
 document.getElementById("login-btn").addEventListener("click", login);
 document.getElementById("send-btn").addEventListener("click", sendMessage);
+document.getElementById("collaborate-btn").addEventListener("click", collaborate);
 document.getElementById("load-history-btn").addEventListener("click", loadHistory);
 document.getElementById("refresh-health-btn").addEventListener("click", loadHealthStatus);
+document.getElementById("model-select").addEventListener("change", renderModelMeta);

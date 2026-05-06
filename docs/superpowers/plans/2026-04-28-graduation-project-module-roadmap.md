@@ -32,6 +32,7 @@
 | M7 Thesis And Figures | Full thesis, diagrams, tables, screenshots, experiment sections | Completed | `output/doc`, `output/doc/figures`, `docs/figures-guide.md` | Move to M8 defense package |
 | M8 Defense Package | PPT, demo script, Q&A notes, explanation checklist | Completed | `docs/defense`, `output/presentation/答辩PPT大纲.md` | Optional extension: DeepSeek API default integration |
 | M9 P1/P2 Enhancement Foundation | DeepSeek defaults, multi-provider skeleton, knowledge base, cache, streaming, CORS, gateway SendAll, admin benchmark cards | Completed locally | `services/ai_service/app`, `.env.example`, `knowledge_base/`, `frontend/admin.*`, `tests/` | Commit and push `codex/p1-p2-enhancements` |
+| M10 Real LLM And Multi-Model Collaboration | Four switchable DeepSeek/MiMo models, local secret loading, `/api/models`, `/api/chat/collaborate`, frontend model switcher | Completed locally | `services/ai_service/app`, `frontend/index.html`, `frontend/app.js`, `.env.local.example`, `tests/` | Commit and push `codex/real-llm-model-collaboration` |
 
 ## Recommended Module Order
 
@@ -41,6 +42,7 @@
 4. M7 Thesis Finalization
 5. M8 Defense Package
 6. M9 P1/P2 Enhancement Foundation
+7. M10 Real LLM And Multi-Model Collaboration
 
 ## M4 C++ Gateway Strengthening Tasks
 
@@ -307,6 +309,49 @@
 
   Commit the verified P1/P2 work and push `codex/p1-p2-enhancements` to GitHub.
 
+## M10 Real LLM And Multi-Model Collaboration Tasks
+
+**Files:**
+- Modify: `services/ai_service/app/models.py`
+- Modify: `services/ai_service/app/service.py`
+- Modify: `services/ai_service/app/api.py`
+- Modify: `frontend/index.html`
+- Modify: `frontend/app.js`
+- Modify: `frontend/styles.css`
+- Modify: `.gitignore`, `.env.example`
+- Create: `.env.local.example`
+- Modify: `README.md`, `docs/runbook.md`
+- Test: `tests/python/test_api.py`, `tests/python/test_service.py`, `tests/test_frontend_contract.py`, `tests/test_docs.py`
+
+- [x] **M10-1 Add safe local secret loading**
+
+  Read `.env.local` and environment variables at runtime, but keep real API keys out of tracked files. `.env.local.example` documents `DEEPSEEK_API_KEY`, `MIMO_API_KEY`, and `XIAOMI_API_KEY`.
+
+- [x] **M10-2 Add four-model catalog**
+
+  Add `deepseek-v4-pro`, `deepseek-v4-flash`, `mimo-v2.5-pro`, and `mimo-v2.5` with 1,000K context windows and 65,536 max output tokens.
+
+- [x] **M10-3 Add model switching API**
+
+  Add `/api/models`, extend `/api/chat` with `provider` and `model`, and ensure model metadata responses never expose API keys.
+
+- [x] **M10-4 Add multi-model collaboration API**
+
+  Add `/api/chat/collaborate` so multiple selected models can answer in sequence and return both individual rounds and a final combined answer.
+
+- [x] **M10-5 Add frontend model switcher**
+
+  Add a model dropdown, context/max-output display, and a multi-model collaboration button on the user page.
+
+- [x] **M10-6 Verify**
+
+  Verification completed with:
+
+  ```powershell
+  python -m unittest discover -s tests -v
+  python -m compileall services tests scripts tools
+  ```
+
 ## End-Of-Task Review Template
 
 After every task, update this section in the next commit or in the module-specific plan.
@@ -325,8 +370,8 @@ Risk or blocker:
 ## Current Snapshot
 
 Date: 2026-05-06
-Branch: `codex/p1-p2-enhancements`
-Commit: M6 `65cb88b`, M7 `f4e449b`; M9 `8edf02f`
+Branch: `codex/real-llm-model-collaboration`
+Commit: M6 `65cb88b`, M7 `f4e449b`; M9 `8edf02f`; M10 pending commit
 Completed:
 - M1 foundation runtime mostly completed.
 - M2 Python service first version completed.
@@ -341,11 +386,13 @@ Completed:
 - M8 defense package is implemented in the current working tree: five-minute demo script, defense Q&A notes, and PPT outline were added with tests.
 - M9 P1/P2 enhancement foundation is implemented in branch `codex/p1-p2-enhancements`: DeepSeek default config, multi-provider admin endpoint, knowledge base retrieval, response cache, stream endpoint, CORS configuration, gateway full-buffer send, and admin benchmark cards are implemented with tests.
 - M9 verification completed with `python -m unittest discover -s tests -v`, `python -m compileall services tests scripts tools`, and WSL `bash scripts/build_gateway_wsl.sh`. WSL build used the script's direct `g++` fallback because `cmake` is not installed in that WSL environment.
+- M10 real LLM and multi-model collaboration is implemented locally in branch `codex/real-llm-model-collaboration`: four model catalog entries, local `.env.local` secret loading, `/api/models`, provider/model selection in `/api/chat`, `/api/chat/collaborate`, user-page model switcher, and documentation are implemented with tests.
 Remaining:
 - No blocking P1/P2 foundation task remains on `codex/p1-p2-enhancements`.
-- Optional extension after M9: implement role-permission details, stronger multi-Agent orchestration, third-party software connectors, and larger Linux benchmark evidence.
+- M10 still needs commit and push after final status review.
+- Optional extension after M10: implement role-permission details, stronger multi-Agent orchestration, third-party software connectors, and larger Linux benchmark evidence.
 Next recommended task:
-- Decide whether to merge `codex/p1-p2-enhancements` after the current midterm-document branch is settled, then continue with P2+ role-permission details or multi-Agent orchestration as a separate module.
+- Commit and push `codex/real-llm-model-collaboration`, then test a real API call only from environment variables or `.env.local` without printing keys.
 Risk or blocker:
-- External LLM API integration requires a valid API key and should not commit secrets into the repository.
+- External LLM API integration requires valid local API keys and must not commit secrets into the repository.
 - Full Linux benchmark evidence is still pending; current gateway evidence is WSL-based and suitable for implementation validation.

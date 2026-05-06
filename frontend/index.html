@@ -75,12 +75,24 @@
         <span>当前会话标题</span>
         <strong id="session-title-value">未生成</strong>
       </div>
+      <div class="model-switcher">
+        <div class="form-row">
+          <label>模型选择</label>
+          <select id="model-select">
+            <option value="">正在加载模型...</option>
+          </select>
+        </div>
+        <p id="model-meta" class="hint">模型信息加载后可在这里查看上下文和最大输出。</p>
+      </div>
       <div id="chat-log" class="chat-log"></div>
       <div class="form-row">
         <label>问题</label>
         <textarea id="message" rows="4" placeholder="请输入你的问题"></textarea>
       </div>
-      <button id="send-btn">发送</button>
+      <div class="button-row">
+        <button id="send-btn">发送</button>
+        <button id="collaborate-btn" type="button">多模型协作</button>
+      </div>
     </section>
 
     <section class="panel history-panel">

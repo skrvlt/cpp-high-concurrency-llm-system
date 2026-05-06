@@ -35,9 +35,61 @@ class ApiTests(unittest.TestCase):
         self.assertEqual(200, login.status_code)
         token = login.json()["token"]
 
-        chat = client.post("/api/chat", json={"token": token, "message": "你好"})
+        chat = client.post(
+            "/api/chat",
+            json={
+                "token": token,
+                "message": "你好",
+                "provider": "deepseek",
+                "model": "deepseek-v4-flash",
+            },
+        )
         self.assertEqual(200, chat.status_code)
         self.assertIn("answer", chat.json())
+        self.assertEqual("deepseek", chat.json()["provider"])
+        self.assertEqual("deepseek-v4-flash", chat.json()["model"])
+
+    def test_models_endpoint_exposes_switchable_models_without_keys(self):
+        models = client.get("/api/models")
+
+        self.assertEqual(200, models.status_code)
+        body = models.json()
+        self.assertIn("items", body)
+        names = {item["model"] for item in body["items"]}
+        self.assertIn("deepseek-v4-pro", names)
+        self.assertIn("deepseek-v4-flash", names)
+        self.assertIn("mimo-v2.5-pro", names)
+        self.assertIn("mimo-v2.5", names)
+        serialized = str(body)
+        self.assertNotIn("api_key", serialized.lower())
+        self.assertNotIn("sk-", serialized)
+        self.assertNotIn("tp-", serialized)
+
+    def test_chat_collaboration_returns_model_answers_and_final_answer(self):
+        login = client.post(
+            "/api/login", json={"username": "student", "password": "student123"}
+        )
+        token = login.json()["token"]
+
+        response = client.post(
+            "/api/chat/collaborate",
+            json={
+                "token": token,
+                "message": "多模型协作测试",
+                "participants": [
+                    {"provider": "deepseek", "model": "deepseek-v4-pro"},
+                    {"provider": "mimo", "model": "mimo-v2.5"},
+                ],
+            },
+        )
+
+        self.assertEqual(200, response.status_code)
+        body = response.json()
+        self.assertIn("final_answer", body)
+        self.assertEqual(2, len(body["rounds"]))
+        self.assertEqual("deepseek", body["rounds"][0]["provider"])
+        self.assertEqual("mimo", body["rounds"][1]["provider"])
+        self.assertIn("多模型协作测试", body["final_answer"])
 
     def test_chat_stream_endpoint_returns_text_event_stream(self):
         login = client.post(

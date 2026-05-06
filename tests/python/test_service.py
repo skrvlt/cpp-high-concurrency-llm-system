@@ -8,6 +8,7 @@ from services.ai_service.app.service import (
     DemoModelClient,
     KnowledgeBase,
     create_repository_from_env,
+    load_model_catalog,
 )
 from services.ai_service.app.repository import SQLiteRepository
 
@@ -131,7 +132,7 @@ class ServiceTests(unittest.TestCase):
                 self.last_error = None
                 self.last_provider = "counting"
 
-            def answer(self, message, username, config, context=""):
+            def answer(self, message, username, config, context="", provider=None, model=None):
                 self.calls += 1
                 return f"cached-answer-{self.calls}"
 
@@ -144,6 +145,53 @@ class ServiceTests(unittest.TestCase):
 
         self.assertEqual(first.answer, second.answer)
         self.assertEqual(1, service.model_client.calls)
+
+    def test_model_catalog_contains_user_provided_models_without_secrets(self):
+        catalog = load_model_catalog()
+        names = {item.model for item in catalog}
+
+        self.assertIn("deepseek-v4-pro", names)
+        self.assertIn("deepseek-v4-flash", names)
+        self.assertIn("mimo-v2.5-pro", names)
+        self.assertIn("mimo-v2.5", names)
+        serialized = str([item.__dict__ for item in catalog])
+        self.assertNotIn("sk-", serialized)
+        self.assertNotIn("tp-", serialized)
+        self.assertIn("context_window", serialized)
+        self.assertIn("max_output_tokens", serialized)
+
+    def test_collaboration_runs_each_participant_and_combines_answers(self):
+        class EchoClient:
+            def __init__(self):
+                self.last_error = None
+
+            def answer(
+                self,
+                message,
+                username,
+                config,
+                context="",
+                provider=None,
+                model=None,
+            ):
+                return f"{provider.name}:{model.model}:{message}"
+
+        service = AppService()
+        service.model_client = EchoClient()
+        token = service.login("student", "student123")
+
+        result = service.collaborate(
+            token,
+            "协作问题",
+            [
+                {"provider": "deepseek", "model": "deepseek-v4-pro"},
+                {"provider": "mimo", "model": "mimo-v2.5"},
+            ],
+        )
+
+        self.assertEqual(2, len(result["rounds"]))
+        self.assertIn("deepseek-v4-pro", result["final_answer"])
+        self.assertIn("mimo-v2.5", result["final_answer"])
 
     def test_cached_answer_does_not_log_remote_fallback_again(self):
         service = AppService()

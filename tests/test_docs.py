@@ -137,12 +137,19 @@ class DocsTests(unittest.TestCase):
     def test_docs_and_env_cover_p1_p2_enhancements(self):
         root = Path.cwd()
         env = (root / ".env.example").read_text(encoding="utf-8")
+        local_env_example = (root / ".env.local.example").read_text(encoding="utf-8")
+        gitignore = (root / ".gitignore").read_text(encoding="utf-8")
         readme = (root / "README.md").read_text(encoding="utf-8")
         runbook = (root / "docs" / "runbook.md").read_text(encoding="utf-8")
 
         self.assertIn("deepseek-v4-flash", env)
         self.assertIn("https://api.deepseek.com/chat/completions", env)
+        self.assertIn("DEEPSEEK_API_KEY=", local_env_example)
+        self.assertIn("MIMO_API_KEY=", local_env_example)
+        self.assertIn(".env.local", gitignore)
         for text in [readme, runbook]:
             self.assertIn("5 分钟验收路线", text)
             self.assertIn("知识库检索", text)
             self.assertIn("多模型配置", text)
+            self.assertIn("/api/models", text)
+            self.assertIn("/api/chat/collaborate", text)

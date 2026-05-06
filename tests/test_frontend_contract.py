@@ -86,3 +86,15 @@ class FrontendContractTests(unittest.TestCase):
         self.assertIn("benchmark-box", admin_html)
         self.assertIn("gateway-health.json", admin_js)
         self.assertIn("gateway-chat.json", admin_js)
+
+    def test_user_frontend_supports_model_switching_and_collaboration(self):
+        root = Path.cwd()
+        index_html = (root / "frontend" / "index.html").read_text(encoding="utf-8")
+        app_js = (root / "frontend" / "app.js").read_text(encoding="utf-8")
+
+        self.assertIn("model-select", index_html)
+        self.assertIn("collaborate-btn", index_html)
+        self.assertIn("/models", app_js)
+        self.assertIn("/chat/collaborate", app_js)
+        self.assertIn("provider", app_js)
+        self.assertIn("model", app_js)

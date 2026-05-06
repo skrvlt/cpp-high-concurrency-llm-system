@@ -26,6 +26,7 @@ cmake-build-*/
 
 # Logs and temporary files
 *.log
+.env.local
 .runtime_logs/
 runtime_data/
 *.sqlite

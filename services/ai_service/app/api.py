@@ -5,6 +5,7 @@ from fastapi.responses import StreamingResponse
 
 from .models import (
     ChatRequest,
+    CollaborationRequest,
     ConfigUpdateRequest,
     LoginRequest,
     LoginResponse,
@@ -34,6 +35,11 @@ def health():
     return service.health()
 
 
+@router.get("/models")
+def models():
+    return {"items": service.models()}
+
+
 @router.post("/login", response_model=LoginResponse)
 def login(payload: LoginRequest):
     try:
@@ -52,7 +58,19 @@ def login(payload: LoginRequest):
 @router.post("/chat")
 def chat(payload: ChatRequest):
     try:
-        return service.chat(payload.token, payload.message)
+        return service.chat(payload.token, payload.message, payload.provider, payload.model)
+    except ValueError as exc:
+        raise HTTPException(status_code=401, detail=str(exc)) from exc
+
+
+@router.post("/chat/collaborate")
+def chat_collaborate(payload: CollaborationRequest):
+    try:
+        participants = [
+            item.model_dump() if hasattr(item, "model_dump") else item.dict()
+            for item in payload.participants
+        ]
+        return service.collaborate(payload.token, payload.message, participants)
     except ValueError as exc:
         raise HTTPException(status_code=401, detail=str(exc)) from exc
 
@@ -60,7 +78,7 @@ def chat(payload: ChatRequest):
 @router.post("/chat/stream")
 def chat_stream(payload: ChatRequest):
     try:
-        response = service.chat(payload.token, payload.message)
+        response = service.chat(payload.token, payload.message, payload.provider, payload.model)
     except ValueError as exc:
         raise HTTPException(status_code=401, detail=str(exc)) from exc
 

@@ -47,6 +47,10 @@
 - `LLM_MODEL_NAME`
 - `LLM_PROVIDER`
 - `LLM_PROVIDERS_JSON`
+- `LLM_MODELS_JSON`
+- `DEEPSEEK_API_KEY`
+- `MIMO_API_KEY`
+- `XIAOMI_API_KEY`
 - `APP_CORS_ORIGINS`
 - `APP_STORAGE`
 - `SQLITE_DB_PATH`
@@ -128,7 +132,9 @@ bash scripts/verify_gateway_smoke.sh
 
 - `/api/login`：用户登录，返回 token、角色和会话编号。
 - `/api/chat`：普通问答接口，返回完整回答。
+- `/api/models`：返回可切换模型清单，不返回任何 API Key。
 - `/api/chat/stream`：Server-Sent Events 流式问答接口，返回 `text/event-stream`。
+- `/api/chat/collaborate`：多模型协作接口，返回各模型回答和最终合成答案。
 - `/api/history`：返回当前会话历史记录。
 - `/api/admin/logs`：管理员查看运行日志。
 - `/api/admin/config`：管理员查看或修改模型配置。
@@ -148,6 +154,30 @@ bash scripts/verify_gateway_smoke.sh
 `.env.example` 默认给出 `https://api.deepseek.com/chat/completions` 和 `deepseek-v4-flash`。如果要接入其他 OpenAI-compatible 服务，只需要替换 URL、Key 和模型名。系统支持多模型配置骨架：可通过 `LLM_PROVIDERS_JSON` 声明多个 provider，后台接口 `/api/admin/model-providers` 会返回当前模型配置清单。
 
 `APP_CORS_ORIGINS` 用于限制允许访问 Python API 的前端来源，默认允许 `127.0.0.1:5500` 和 `localhost:5500`。如果部署到其他地址，应把实际前端地址加入该变量，而不是恢复为全开放配置。
+
+### 本地 API Key 配置
+
+真实 API Key 不进入版本库。项目提供 `.env.local.example` 作为模板，实际运行时可在项目根目录创建 `.env.local`，填写：
+
+```text
+DEEPSEEK_API_KEY=你的 DeepSeek Key
+MIMO_API_KEY=你的 MiMo Key
+LLM_PROVIDER=deepseek
+LLM_MODEL_NAME=deepseek-v4-pro
+```
+
+`.env.local` 已被 `.gitignore` 排除，不应提交。后端启动时会自动读取该文件；同名系统环境变量优先级更高。
+
+当前前端可切换四个模型：
+
+| Provider | 模型 | 别名 | 上下文窗口 | 最大输出 |
+| --- | --- | --- | --- | --- |
+| deepseek | `deepseek-v4-pro` | DS-Pro | 1,000K | 65,536 |
+| deepseek | `deepseek-v4-flash` | DS-Flash | 1,000K | 65,536 |
+| mimo | `mimo-v2.5-pro` | MiMo-Pro | 1,000K | 65,536 |
+| mimo | `mimo-v2.5` | MiMo | 1,000K | 65,536 |
+
+用户端“模型选择”下拉框调用 `/api/models` 获取模型清单；“多模型协作”按钮调用 `/api/chat/collaborate`，按模型顺序让多个模型互相参考并生成最终合成答案。
 
 ## 知识库检索与缓存
 
