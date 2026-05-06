@@ -303,7 +303,7 @@
   bash scripts/build_gateway_wsl.sh
   ```
 
-- [ ] **M9-8 Commit and push**
+- [x] **M9-8 Commit and push**
 
   Commit the verified P1/P2 work and push `codex/p1-p2-enhancements` to GitHub.
 
@@ -326,7 +326,7 @@ Risk or blocker:
 
 Date: 2026-05-06
 Branch: `codex/p1-p2-enhancements`
-Commit: M6 `65cb88b`, M7 `f4e449b`; M9 pending verification and commit in current branch
+Commit: M6 `65cb88b`, M7 `f4e449b`; M9 `8edf02f`
 Completed:
 - M1 foundation runtime mostly completed.
 - M2 Python service first version completed.
@@ -342,10 +342,10 @@ Completed:
 - M9 P1/P2 enhancement foundation is implemented in branch `codex/p1-p2-enhancements`: DeepSeek default config, multi-provider admin endpoint, knowledge base retrieval, response cache, stream endpoint, CORS configuration, gateway full-buffer send, and admin benchmark cards are implemented with tests.
 - M9 verification completed with `python -m unittest discover -s tests -v`, `python -m compileall services tests scripts tools`, and WSL `bash scripts/build_gateway_wsl.sh`. WSL build used the script's direct `g++` fallback because `cmake` is not installed in that WSL environment.
 Remaining:
-- Commit and push M9.
+- No blocking P1/P2 foundation task remains on `codex/p1-p2-enhancements`.
 - Optional extension after M9: implement role-permission details, stronger multi-Agent orchestration, third-party software connectors, and larger Linux benchmark evidence.
 Next recommended task:
-- Run full verification for M9, commit `codex/p1-p2-enhancements`, and push the branch.
+- Decide whether to merge `codex/p1-p2-enhancements` after the current midterm-document branch is settled, then continue with P2+ role-permission details or multi-Agent orchestration as a separate module.
 Risk or blocker:
 - External LLM API integration requires a valid API key and should not commit secrets into the repository.
 - Full Linux benchmark evidence is still pending; current gateway evidence is WSL-based and suitable for implementation validation.
