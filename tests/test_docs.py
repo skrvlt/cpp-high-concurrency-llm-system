@@ -4,6 +4,13 @@ import zipfile
 from docx import Document
 from docx.oxml.ns import qn
 
+from tools.generate_thesis_docx import (
+    FIGURE_ASSETS,
+    clean_inline_markdown,
+    is_markdown_table_row,
+    split_markdown_table_row,
+)
+
 
 class DocsTests(unittest.TestCase):
     def _unique_row_cells(self, row):
@@ -44,6 +51,11 @@ class DocsTests(unittest.TestCase):
                 self.assertEqual(self._border_value(right_cell, "left"), "single")
                 self.assertEqual(self._border_value(right_cell, "start"), "single")
 
+    def test_thesis_docx_generator_removes_inline_markdown_marks(self):
+        text = clean_inline_markdown("**关键词：** `C++` 与 `FastAPI`")
+
+        self.assertEqual("关键词： C++ 与 FastAPI", text)
+
     def test_thesis_contains_required_sections(self):
         text = (Path.cwd() / "output" / "doc" / "毕业设计说明书初稿.md").read_text(
             encoding="utf-8"
@@ -79,9 +91,51 @@ class DocsTests(unittest.TestCase):
         for marker in [
             "问答处理时序图",
             "系统 E-R 图",
-            "附录B 后续补充材料说明",
+            "附录B 运行与测试材料索引",
         ]:
             self.assertIn(marker, text)
+
+    def test_thesis_api_appendix_matches_actual_chat_endpoint(self):
+        text = (Path.cwd() / "output" / "doc" / "毕业设计说明书初稿.md").read_text(
+            encoding="utf-8"
+        )
+        self.assertIn("POST /api/chat", text)
+        self.assertNotIn("POST /api/ask", text)
+
+    def test_thesis_removes_finalization_placeholders(self):
+        text = (Path.cwd() / "output" / "doc" / "毕业设计说明书初稿.md").read_text(
+            encoding="utf-8"
+        )
+        for marker in [
+            "正式定稿时",
+            "建议将该图",
+            "后续补充材料说明",
+            "截图位",
+            "TODO",
+            "占位",
+        ]:
+            self.assertNotIn(marker, text)
+
+    def test_docx_generator_parses_markdown_table_rows(self):
+        self.assertTrue(is_markdown_table_row("| 字段 | 类型 | 备注 |"))
+        self.assertFalse(is_markdown_table_row("| --- | --- | --- |"))
+        self.assertEqual(
+            ["字段", "类型", "备注"],
+            split_markdown_table_row("| 字段 | 类型 | 备注 |"),
+        )
+
+    def test_thesis_core_figure_assets_exist(self):
+        root = Path.cwd()
+        for caption in [
+            "图3-1 系统用例图",
+            "图4-1 系统总体结构图",
+            "图4-2 智能问答处理流程图",
+            "图4-3 问答处理时序图",
+            "图4-4 系统 E-R 图",
+        ]:
+            with self.subTest(caption=caption):
+                self.assertIn(caption, FIGURE_ASSETS)
+                self.assertTrue((root / FIGURE_ASSETS[caption]).exists())
 
     def test_docs_mention_windows_linux_wsl_support(self):
         runbook = (Path.cwd() / "docs" / "runbook.md").read_text(encoding="utf-8")
@@ -126,6 +180,8 @@ class DocsTests(unittest.TestCase):
         lines = (Path.cwd() / "output" / "doc" / "毕业设计说明书初稿.md").read_text(
             encoding="utf-8"
         ).splitlines()
+        if not any("[用例表]" in line for line in lines):
+            self.skipTest("当前最终论文初稿不包含中期检查版用例表块")
         table_indices = [
             index
             for index, line in enumerate(lines)
@@ -157,18 +213,33 @@ class DocsTests(unittest.TestCase):
             )
 
     def test_generated_doc_use_case_tables_remove_outer_borders(self):
+        text = (Path.cwd() / "output" / "doc" / "毕业设计说明书初稿.md").read_text(
+            encoding="utf-8"
+        )
+        if "[用例表]" not in text:
+            self.skipTest("当前最终论文初稿不包含中期检查版用例表块")
         docx_path = Path.cwd() / "output" / "doc" / "毕业设计说明书初稿.docx"
         doc = Document(docx_path)
         for table_index in [1, 3, 5]:
             self.assert_open_sided_table_borders(doc.tables[table_index])
 
     def test_generated_doc_use_case_tables_keep_inner_vertical_lines(self):
+        text = (Path.cwd() / "output" / "doc" / "毕业设计说明书初稿.md").read_text(
+            encoding="utf-8"
+        )
+        if "[用例表]" not in text:
+            self.skipTest("当前最终论文初稿不包含中期检查版用例表块")
         docx_path = Path.cwd() / "output" / "doc" / "毕业设计说明书初稿.docx"
         doc = Document(docx_path)
         for table_index in [1, 2, 3, 4, 5, 6]:
             self.assert_open_sided_table_borders(doc.tables[table_index])
 
     def test_generated_doc_table_3_1_removes_outer_borders(self):
+        text = (Path.cwd() / "output" / "doc" / "毕业设计说明书初稿.md").read_text(
+            encoding="utf-8"
+        )
+        if "[用例表]" not in text:
+            self.skipTest("当前最终论文初稿不包含中期检查版用例表块")
         docx_path = Path.cwd() / "output" / "doc" / "毕业设计说明书初稿.docx"
         doc = Document(docx_path)
         self.assert_open_sided_table_borders(doc.tables[0])
@@ -178,8 +249,42 @@ class DocsTests(unittest.TestCase):
             Path.cwd() / "中期检查" / "毕业设计前三章-中期检查版.docx",
             Path.cwd() / "中期检查" / "毕业设计前三章-中期检查版-格式整理副本.docx",
         ]
-        for docx_path in docx_paths:
+        existing_paths = [path for path in docx_paths if path.exists()]
+        if not existing_paths:
+            self.skipTest("当前工作区未保留中期检查版固定文件名 DOCX")
+        for docx_path in existing_paths:
             doc = Document(docx_path)
             for table_index in range(7):
                 with self.subTest(docx=docx_path.name, table_index=table_index):
                     self.assert_open_sided_table_borders(doc.tables[table_index])
+
+    def test_docs_mention_requirements_and_storage_mode(self):
+        readme = (Path.cwd() / "README.md").read_text(encoding="utf-8")
+        runbook = (Path.cwd() / "docs" / "runbook.md").read_text(encoding="utf-8")
+        test_plan = (Path.cwd() / "docs" / "test-plan.md").read_text(encoding="utf-8")
+        for text in [readme, runbook]:
+            self.assertIn("requirements.txt", text)
+            self.assertIn("python -m pip install -r requirements.txt", text)
+        for text in [readme, runbook, test_plan]:
+            self.assertIn("storage_mode", text)
+            self.assertIn("APP_STORAGE=sqlite", text)
+
+    def test_docs_and_env_cover_p1_p2_enhancements(self):
+        root = Path.cwd()
+        env = (root / ".env.example").read_text(encoding="utf-8")
+        local_env_example = (root / ".env.local.example").read_text(encoding="utf-8")
+        gitignore = (root / ".gitignore").read_text(encoding="utf-8")
+        readme = (root / "README.md").read_text(encoding="utf-8")
+        runbook = (root / "docs" / "runbook.md").read_text(encoding="utf-8")
+
+        self.assertIn("deepseek-v4-flash", env)
+        self.assertIn("https://api.deepseek.com/chat/completions", env)
+        self.assertIn("DEEPSEEK_API_KEY=", local_env_example)
+        self.assertIn("MIMO_API_KEY=", local_env_example)
+        self.assertIn(".env.local", gitignore)
+        for text in [readme, runbook]:
+            self.assertIn("5 分钟验收路线", text)
+            self.assertIn("知识库检索", text)
+            self.assertIn("多模型配置", text)
+            self.assertIn("/api/models", text)
+            self.assertIn("/api/chat/collaborate", text)

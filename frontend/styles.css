@@ -85,6 +85,47 @@ body {
   color: var(--brand-strong);
 }
 
+.runtime-status {
+  margin: 14px 0;
+}
+
+.runtime-status h2 {
+  margin: 0;
+  font-size: 16px;
+}
+
+.status-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.status-card {
+  min-width: 0;
+  border: 1px solid rgba(143, 79, 42, 0.16);
+  border-radius: 14px;
+  padding: 12px;
+  background: rgba(255, 255, 255, 0.74);
+}
+
+.status-card.wide {
+  grid-column: 1 / -1;
+}
+
+.status-card span {
+  display: block;
+  color: var(--muted);
+  font-size: 13px;
+  margin-bottom: 6px;
+}
+
+.status-card strong {
+  display: block;
+  overflow-wrap: anywhere;
+  color: var(--brand-strong);
+}
+
 .form-row {
   display: flex;
   flex-direction: column;
@@ -94,12 +135,14 @@ body {
 
 input,
 textarea,
+select,
 button {
   font: inherit;
 }
 
 input,
-textarea {
+textarea,
+select {
   width: 100%;
   border: 1px solid var(--line);
   border-radius: 12px;
@@ -114,6 +157,20 @@ button {
   background: linear-gradient(135deg, var(--brand), var(--brand-strong));
   color: white;
   cursor: pointer;
+}
+
+.button-row {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.model-switcher {
+  margin: 12px 0;
+  padding: 12px;
+  border: 1px solid rgba(143, 79, 42, 0.16);
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.58);
 }
 
 .chat-log,
@@ -144,6 +201,13 @@ button {
 
 .message-card h4 {
   margin: 0 0 8px;
+}
+
+.metric-card p {
+  margin: 0;
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--brand-strong);
 }
 
 a {

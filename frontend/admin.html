@@ -14,6 +14,34 @@
         <span>当前运行模式</span>
         <strong id="admin-runtime-mode">未检测</strong>
       </div>
+      <div class="runtime-status">
+        <div class="panel-header">
+          <h2>运行状态</h2>
+          <button id="admin-refresh-health-btn">刷新状态</button>
+        </div>
+        <div class="status-grid">
+          <article class="status-card wide">
+            <span>API 地址</span>
+            <strong id="api-base-value">未检测</strong>
+          </article>
+          <article class="status-card">
+            <span>运行模式</span>
+            <strong id="health-runtime-mode">未检测</strong>
+          </article>
+          <article class="status-card">
+            <span>存储模式</span>
+            <strong id="health-storage-mode">未检测</strong>
+          </article>
+          <article class="status-card">
+            <span>模型名称</span>
+            <strong id="health-model-name">未检测</strong>
+          </article>
+          <article class="status-card">
+            <span>会话数</span>
+            <strong id="health-session-count">未检测</strong>
+          </article>
+        </div>
+      </div>
       <div class="form-row">
         <label>管理员用户名</label>
         <input id="admin-username" value="admin">
@@ -32,6 +60,14 @@
         <button id="load-overview-btn">加载概览</button>
       </div>
       <div id="overview-box" class="history-list overview-cards"></div>
+    </section>
+
+    <section class="panel">
+      <div class="panel-header">
+        <h2>测试结果</h2>
+        <button id="load-benchmark-btn">加载压测数据</button>
+      </div>
+      <div id="benchmark-box" class="history-list overview-cards"></div>
     </section>
 
     <section class="panel">

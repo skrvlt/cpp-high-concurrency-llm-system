@@ -25,6 +25,34 @@
         <span>当前运行模式</span>
         <strong id="runtime-mode-value">未检测</strong>
       </div>
+      <div class="runtime-status">
+        <div class="panel-header">
+          <h2>运行状态</h2>
+          <button id="refresh-health-btn">刷新状态</button>
+        </div>
+        <div class="status-grid">
+          <article class="status-card wide">
+            <span>API 地址</span>
+            <strong id="api-base-value">未检测</strong>
+          </article>
+          <article class="status-card">
+            <span>运行模式</span>
+            <strong id="health-runtime-mode">未检测</strong>
+          </article>
+          <article class="status-card">
+            <span>存储模式</span>
+            <strong id="health-storage-mode">未检测</strong>
+          </article>
+          <article class="status-card">
+            <span>模型名称</span>
+            <strong id="health-model-name">未检测</strong>
+          </article>
+          <article class="status-card">
+            <span>会话数</span>
+            <strong id="health-session-count">未检测</strong>
+          </article>
+        </div>
+      </div>
       <div class="form-row">
         <label>用户名</label>
         <input id="username" value="student">
@@ -47,12 +75,24 @@
         <span>当前会话标题</span>
         <strong id="session-title-value">未生成</strong>
       </div>
+      <div class="model-switcher">
+        <div class="form-row">
+          <label>模型选择</label>
+          <select id="model-select">
+            <option value="">正在加载模型...</option>
+          </select>
+        </div>
+        <p id="model-meta" class="hint">模型信息加载后可在这里查看上下文和最大输出。</p>
+      </div>
       <div id="chat-log" class="chat-log"></div>
       <div class="form-row">
         <label>问题</label>
         <textarea id="message" rows="4" placeholder="请输入你的问题"></textarea>
       </div>
-      <button id="send-btn">发送</button>
+      <div class="button-row">
+        <button id="send-btn">发送</button>
+        <button id="collaborate-btn" type="button">多模型协作</button>
+      </div>
     </section>
 
     <section class="panel history-panel">

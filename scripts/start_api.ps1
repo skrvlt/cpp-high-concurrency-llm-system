@@ -3,5 +3,15 @@ param(
     [int]$Port = 8000
 )
 
-$python = "C:\Users\kidosto\.cache\codex-runtimes\codex-primary-runtime\dependencies\python\python.exe"
-& $python -m uvicorn services.ai_service.app.main:app --host $HostAddress --port $Port
+if ($env:PYTHON) {
+    $python = $env:PYTHON
+    $pythonArgs = @()
+} elseif (Get-Command py -ErrorAction SilentlyContinue) {
+    $python = "py"
+    $pythonArgs = @("-3")
+} else {
+    $python = "python"
+    $pythonArgs = @()
+}
+
+& $python @pythonArgs -m uvicorn services.ai_service.app.main:app --host $HostAddress --port $Port

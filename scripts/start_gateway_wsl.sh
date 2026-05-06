@@ -14,8 +14,8 @@ if [[ ! -x "./llm_gateway" ]]; then
     cmake ..
     make
   else
-    echo "cmake not found, falling back to direct g++ build."
-    g++ -std=c++17 ../src/main.cpp ../src/http_server.cpp -I../include -pthread -o llm_gateway
+    echo "cmake not found; using direct g++ fallback build."
+    g++ -std=c++17 -O2 -pthread -I../include ../src/main.cpp ../src/http_server.cpp -o llm_gateway
   fi
 fi
 

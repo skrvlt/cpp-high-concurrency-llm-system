@@ -61,12 +61,27 @@ class LoginResponse(BaseModel):
 class ChatRequest(BaseModel):
     token: str
     message: str = Field(..., min_length=1)
+    provider: str | None = None
+    model: str | None = None
 
 
 class ChatResponse(BaseModel):
     session_id: int
     answer: str
     history_size: int
+    provider: str = "demo"
+    model: str = "demo-llm"
+
+
+class CollaborationParticipant(BaseModel):
+    provider: str
+    model: str
+
+
+class CollaborationRequest(BaseModel):
+    token: str
+    message: str = Field(..., min_length=1)
+    participants: List[CollaborationParticipant] = Field(default_factory=list)
 
 
 class HistoryResponse(BaseModel):

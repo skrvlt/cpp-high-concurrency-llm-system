@@ -12,20 +12,22 @@
 
 ## 编译
 
+推荐在仓库根目录使用项目脚本：
+
+```bash
+bash scripts/build_gateway_wsl.sh
+```
+
+脚本会优先使用 CMake；如果环境中没有安装 `cmake`，则自动回退到 `g++ -std=c++17` 直接编译。
+
+也可以手动使用 CMake：
+
 ```bash
 mkdir -p build
 cd build
 cmake ..
 make
 ```
-
-如果当前 WSL / Linux 环境没有安装 `cmake`，也可以直接使用 `g++` 回退编译：
-
-```bash
-g++ -std=c++17 ../src/main.cpp ../src/http_server.cpp -I../include -pthread -o llm_gateway
-```
-
-仓库内的 `scripts/build_gateway_wsl.sh` 与 `scripts/start_gateway_wsl.sh` 已经内置这条回退逻辑。
 
 ## 运行
 
@@ -44,6 +46,12 @@ g++ -std=c++17 ../src/main.cpp ../src/http_server.cpp -I../include -pthread -o l
 - `UPSTREAM_HOST`
 - `UPSTREAM_PORT`
 
+启动时会输出实际监听端口和上游地址，例如：
+
+```text
+LLM gateway listening on 0.0.0.0:8080, upstream=127.0.0.1:8000
+```
+
 ## 建议验证链路
 
 1. 在 Windows、Linux 或 WSL 中启动 Python 服务
@@ -52,24 +60,44 @@ g++ -std=c++17 ../src/main.cpp ../src/http_server.cpp -I../include -pthread -o l
 4. 使用 `scripts/verify_runtime.sh gateway` 先验证 `/api/health`、`/api/login`、`/api/chat`
 5. 使用 `scripts/verify_gateway_smoke.sh` 或 `scripts/verify_gateway_smoke.ps1` 补充验证 `/api/history`
 
-如果需要在单个 WSL 会话中自动完成“构建 -> 启动 -> 验证 -> 清理”，可执行：
+在 WSL 中如需避开默认端口，可使用：
+
+```bash
+GATEWAY_PORT=18081 UPSTREAM_HOST=127.0.0.1 UPSTREAM_PORT=8000 bash scripts/start_gateway_wsl.sh
+bash scripts/verify_runtime.sh gateway 127.0.0.1 8000 18081
+bash scripts/verify_gateway_smoke.sh 127.0.0.1 18081
+```
+
+如果需要在单个 WSL 会话中完成“构建 -> 启动 -> 验证 -> 清理”，可执行：
 
 ```bash
 bash scripts/validate_gateway_wsl.sh
 ```
 
-该脚本支持：
+该脚本支持 `API_MODE=local` 和 `API_MODE=remote`。`API_MODE=local` 会在 WSL 内部启动 Python API 后再验证网关；`API_MODE=remote` 用于连接已经启动的外部 Python API。
 
-- `API_MODE=local`：在 WSL 内部启动 Python API，再验证网关
-- `API_MODE=remote`：使用外部已启动的 Python API，并结合 `UPSTREAM_HOST` / `UPSTREAM_PORT` 转发
+实测启动日志示例：
 
-如果 WSL 中尚未安装 Python 依赖，可先执行：
-
-```bash
-bash scripts/setup_wsl_python.sh
+```text
+Starting gateway on port 18081, upstream=127.0.0.1:8000
+LLM gateway listening on 0.0.0.0:18081, upstream=127.0.0.1:8000
 ```
 
-该脚本会在项目根目录创建 `.venv-wsl` 虚拟环境，并在其中安装所需依赖。
+## 上游异常行为
+
+当 Python FastAPI 服务未启动、`UPSTREAM_HOST` 无效或 `UPSTREAM_PORT` 指向未监听端口时，网关不会直接崩溃，而是返回 `502 Bad Gateway` 风格的 JSON 错误响应。可使用以下命令验证：
+
+```bash
+GATEWAY_PORT=8080 UPSTREAM_HOST=127.0.0.1 UPSTREAM_PORT=65530 ./llm_gateway
+curl -i http://127.0.0.1:8080/api/health
+```
+
+预期响应包含：
+
+```text
+HTTP/1.1 502 Bad Gateway
+{"error":"failed to connect upstream"}
+```
 
 ## 说明
 

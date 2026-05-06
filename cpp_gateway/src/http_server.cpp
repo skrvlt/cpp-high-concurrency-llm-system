@@ -4,9 +4,11 @@
 #include <fcntl.h>
 #include <netinet/in.h>
 #include <sys/epoll.h>
+#include <sys/select.h>
 #include <sys/socket.h>
 #include <unistd.h>
 
+#include <cerrno>
 #include <cstring>
 #include <iostream>
 #include <sstream>
@@ -15,6 +17,9 @@
 namespace {
 constexpr int kMaxEvents = 64;
 constexpr int kBufferSize = 8192;
+constexpr int kUpstreamConnectTimeoutSeconds = 3;
+constexpr int kUpstreamIoTimeoutSeconds = 10;
+
 std::string JsonEscape(const std::string &input) {
     std::string output;
     output.reserve(input.size());
@@ -25,6 +30,115 @@ std::string JsonEscape(const std::string &input) {
         output.push_back(ch);
     }
     return output;
+}
+
+bool SetSocketBlocking(int fd, bool blocking) {
+    const int flags = fcntl(fd, F_GETFL, 0);
+    if (flags < 0) {
+        return false;
+    }
+    const int updated_flags = blocking ? (flags & ~O_NONBLOCK) : (flags | O_NONBLOCK);
+    return fcntl(fd, F_SETFL, updated_flags) == 0;
+}
+
+void SetSocketTimeouts(int fd) {
+    timeval timeout{};
+    timeout.tv_sec = kUpstreamIoTimeoutSeconds;
+    timeout.tv_usec = 0;
+    setsockopt(fd, SOL_SOCKET, SO_RCVTIMEO, &timeout, sizeof(timeout));
+    setsockopt(fd, SOL_SOCKET, SO_SNDTIMEO, &timeout, sizeof(timeout));
+}
+
+bool WaitForUpstreamConnect(int fd) {
+    fd_set write_fds;
+    FD_ZERO(&write_fds);
+    FD_SET(fd, &write_fds);
+
+    timeval timeout{};
+    timeout.tv_sec = kUpstreamConnectTimeoutSeconds;
+    timeout.tv_usec = 0;
+
+    const int selected = select(fd + 1, nullptr, &write_fds, nullptr, &timeout);
+    if (selected <= 0) {
+        return false;
+    }
+
+    int socket_error = 0;
+    socklen_t error_length = sizeof(socket_error);
+    if (getsockopt(fd, SOL_SOCKET, SO_ERROR, &socket_error, &error_length) < 0) {
+        return false;
+    }
+    return socket_error == 0;
+}
+
+bool SendAll(int fd, const std::string &data) {
+    std::size_t total_sent = 0;
+    while (total_sent < data.size()) {
+        const ssize_t sent = send(fd, data.data() + total_sent, data.size() - total_sent, 0);
+        if (sent < 0) {
+            if (errno == EINTR) {
+                continue;
+            }
+            return false;
+        }
+        if (sent == 0) {
+            return false;
+        }
+        total_sent += static_cast<std::size_t>(sent);
+    }
+    return true;
+}
+
+std::size_t ParseContentLength(const std::string &request) {
+    const std::string marker = "Content-Length:";
+    const auto header_end = request.find("\r\n\r\n");
+    if (header_end == std::string::npos) {
+        return 0;
+    }
+
+    const auto marker_pos = request.substr(0, header_end).find(marker);
+    if (marker_pos == std::string::npos) {
+        return 0;
+    }
+
+    std::size_t value_start = marker_pos + marker.size();
+    while (value_start < header_end &&
+           (request[value_start] == ' ' || request[value_start] == '\t')) {
+        ++value_start;
+    }
+    const auto value_end = request.find("\r\n", value_start);
+    const std::string value = request.substr(value_start, value_end - value_start);
+    try {
+        return static_cast<std::size_t>(std::stoul(value));
+    } catch (...) {
+        return 0;
+    }
+}
+
+std::string ReadClientRequest(int client_fd) {
+    SetSocketTimeouts(client_fd);
+
+    std::string request;
+    char buffer[kBufferSize];
+    while (true) {
+        const int bytes = recv(client_fd, buffer, sizeof(buffer), 0);
+        if (bytes <= 0) {
+            break;
+        }
+        request.append(buffer, bytes);
+
+        const auto header_end = request.find("\r\n\r\n");
+        if (header_end == std::string::npos) {
+            continue;
+        }
+
+        const std::size_t expected_request_size =
+            header_end + 4 + ParseContentLength(request);
+        if (request.size() >= expected_request_size) {
+            break;
+        }
+    }
+    return request;
 }
 }
 
@@ -92,19 +206,16 @@ void HttpServer::Run() {
 }
 
 void HttpServer::HandleClient(int client_fd) {
-    char buffer[kBufferSize];
-    std::memset(buffer, 0, sizeof(buffer));
-    const int bytes = read(client_fd, buffer, sizeof(buffer) - 1);
-    if (bytes <= 0) {
+    std::string request = ReadClientRequest(client_fd);
+    if (request.empty()) {
         close(client_fd);
         return;
     }
 
-    std::string request(buffer, bytes);
     const auto request_line_end = request.find("\r\n");
     if (request_line_end == std::string::npos) {
         const std::string error = BuildErrorResponse("invalid request line");
-        send(client_fd, error.c_str(), error.size(), 0);
+        SendAll(client_fd, error);
         close(client_fd);
         return;
     }
@@ -114,7 +225,7 @@ void HttpServer::HandleClient(int client_fd) {
     const auto path_end = request_line.find(' ', method_end + 1);
     if (method_end == std::string::npos || path_end == std::string::npos) {
         const std::string error = BuildErrorResponse("invalid request format");
-        send(client_fd, error.c_str(), error.size(), 0);
+        SendAll(client_fd, error);
         close(client_fd);
         return;
     }
@@ -125,13 +236,13 @@ void HttpServer::HandleClient(int client_fd) {
     std::string body = pos == std::string::npos ? "{}" : request.substr(pos + 4);
     if (method != "POST" && method != "GET") {
         const std::string error = BuildErrorResponse("only GET and POST are supported");
-        send(client_fd, error.c_str(), error.size(), 0);
+        SendAll(client_fd, error);
         close(client_fd);
         return;
     }
 
     std::string response = ForwardToUpstream(method, path, body);
-    send(client_fd, response.c_str(), response.size(), 0);
+    SendAll(client_fd, response);
     close(client_fd);
 }
 
@@ -152,10 +263,21 @@ std::string HttpServer::ForwardToUpstream(
         return BuildErrorResponse("invalid upstream host");
     }
 
-    if (connect(upstream_fd, reinterpret_cast<sockaddr *>(&upstream_addr), sizeof(upstream_addr)) < 0) {
+    if (!SetSocketBlocking(upstream_fd, false)) {
         close(upstream_fd);
-        return BuildErrorResponse("failed to connect upstream");
+        return BuildErrorResponse("failed to configure upstream socket");
     }
+
+    const int connect_result =
+        connect(upstream_fd, reinterpret_cast<sockaddr *>(&upstream_addr), sizeof(upstream_addr));
+    if (connect_result < 0) {
+        if (errno != EINPROGRESS || !WaitForUpstreamConnect(upstream_fd)) {
+            close(upstream_fd);
+            return BuildErrorResponse("failed to connect upstream");
+        }
+    }
+    SetSocketBlocking(upstream_fd, true);
+    SetSocketTimeouts(upstream_fd);
 
     std::ostringstream req;
     req << method << " " << path << " HTTP/1.1\r\n";
@@ -171,7 +293,10 @@ std::string HttpServer::ForwardToUpstream(
         req << body;
     }
     const std::string raw_request = req.str();
-    send(upstream_fd, raw_request.c_str(), raw_request.size(), 0);
+    if (!SendAll(upstream_fd, raw_request)) {
+        close(upstream_fd);
+        return BuildErrorResponse("failed to send upstream request");
+    }
 
     std::string response;
     char response_buffer[kBufferSize];

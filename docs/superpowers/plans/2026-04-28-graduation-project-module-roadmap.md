@@ -1,0 +1,398 @@
+# Graduation Project Module Roadmap Implementation Plan
+
+> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+
+**Goal:** Keep the graduation project moving through independent, testable modules without losing direction.
+
+**Architecture:** The project is split into frontend, Python service, persistence, C++ gateway, validation, thesis, and defense-delivery modules. Each module must produce a runnable or reviewable artifact, update its matching documentation/thesis section, pass verification, and be committed on its own branch.
+
+**Tech Stack:** HTML/CSS/JavaScript, Python FastAPI, SQLite, C++17 epoll gateway, shell/PowerShell scripts, unittest, Markdown/DOCX thesis materials.
+
+---
+
+## Operating Rules
+
+- Each module gets its own branch named `codex/<module-purpose>`.
+- Each task starts by checking this roadmap, current git branch, current status, and the latest test result.
+- Each task ends by updating this roadmap or the relevant module plan with: completed work, remaining work, next recommended task, verification command, commit hash, and branch name.
+- Do not mix unrelated module work in one commit.
+- For code changes, write or update tests first where practical, then implement, verify, commit, and push.
+- For document-only changes, verify by reading the changed file and, when applicable, regenerating DOCX output.
+
+## Module Status
+
+| Module | Purpose | Status | Evidence | Next Action |
+| --- | --- | --- | --- | --- |
+| M1 Foundation Runtime | Cross-platform scripts, dependency setup, environment variables, health checks | Mostly done | `README.md`, `.env.example`, `requirements.txt`, `docs/runbook.md` | Keep updated when runtime contracts change |
+| M2 Python AI Service | Login, chat, history, logs, config, overview, model fallback | Mostly done | `services/ai_service/app`, `tests/python` | Add stronger admin/session APIs only if needed by frontend or thesis |
+| M3 Persistence | Memory repository, SQLite runtime persistence, MySQL thesis schema | Mostly done | `SQLiteRepository`, `APP_STORAGE=sqlite`, `db/schema.sql` | Add screenshots or DB verification material for thesis if needed |
+| M4 C++ Gateway | Linux/WSL epoll gateway, forwarding, error behavior, compile/run validation | Completed | `cpp_gateway`, gateway scripts, `docs/gateway-validation.md` | Move to M5 frontend defense polish |
+| M5 Frontend Demo | User page, admin page, mode switching, polished defense demo | Completed | `frontend/index.html`, `frontend/admin.html`, contract tests | Move to M6 real benchmark evidence |
+| M6 Testing And Benchmark | Unit tests, API tests, layout tests, runtime checks, gateway benchmark | Completed | `tests/`, `scripts/benchmark_gateway.py`, `output/benchmark/*.json` | Move to M7 thesis finalization |
+| M7 Thesis And Figures | Full thesis, diagrams, tables, screenshots, experiment sections | Completed | `output/doc`, `output/doc/figures`, `docs/figures-guide.md` | Move to M8 defense package |
+| M8 Defense Package | PPT, demo script, Q&A notes, explanation checklist | Completed | `docs/defense`, `output/presentation/答辩PPT大纲.md` | Optional extension: DeepSeek API default integration |
+| M9 P1/P2 Enhancement Foundation | DeepSeek defaults, multi-provider skeleton, knowledge base, cache, streaming, CORS, gateway SendAll, admin benchmark cards | Completed locally | `services/ai_service/app`, `.env.example`, `knowledge_base/`, `frontend/admin.*`, `tests/` | Commit and push `codex/p1-p2-enhancements` |
+| M10 Real LLM And Multi-Model Collaboration | Four switchable DeepSeek/MiMo models, local secret loading, `/api/models`, `/api/chat/collaborate`, frontend model switcher | Completed locally | `services/ai_service/app`, `frontend/index.html`, `frontend/app.js`, `.env.local.example`, `tests/` | Commit and push `codex/real-llm-model-collaboration` |
+
+## Recommended Module Order
+
+1. M4 C++ Gateway Strengthening
+2. M5 Frontend Demo Polish
+3. M6 Real Benchmark Evidence
+4. M7 Thesis Finalization
+5. M8 Defense Package
+6. M9 P1/P2 Enhancement Foundation
+7. M10 Real LLM And Multi-Model Collaboration
+
+## M4 C++ Gateway Strengthening Tasks
+
+**Files:**
+- Modify: `cpp_gateway/src/http_server.cpp`
+- Modify: `cpp_gateway/include/http_server.h`
+- Modify: `cpp_gateway/README.md`
+- Modify: `docs/gateway-validation.md`
+- Test: `tests/test_cpp_gateway_layout.py`
+
+- [x] **M4-1 Review current gateway implementation**
+
+  Read `cpp_gateway/src/http_server.cpp`, `cpp_gateway/include/http_server.h`, `cpp_gateway/src/main.cpp`, and `cpp_gateway/include/thread_pool.h`.
+
+  Record the gateway behavior in the task notes:
+
+  ```text
+  listener port:
+  upstream host:
+  upstream port:
+  epoll usage:
+  thread pool usage:
+  upstream failure behavior:
+  documented validation command:
+  ```
+
+- [x] **M4-2 Add or verify upstream failure contract**
+
+  Desired behavior: when Python service is unavailable, gateway returns an HTTP response whose status line or body clearly indicates `502 Bad Gateway`.
+
+  Add or update a structure/documentation test in `tests/test_cpp_gateway_layout.py`:
+
+  ```python
+  def test_cpp_gateway_documents_bad_gateway_behavior(self):
+      validation = (Path.cwd() / "docs" / "gateway-validation.md").read_text(encoding="utf-8")
+      self.assertIn("502 Bad Gateway", validation)
+      self.assertIn("UPSTREAM_HOST", validation)
+      self.assertIn("UPSTREAM_PORT", validation)
+  ```
+
+  Run:
+
+  ```powershell
+  python -m unittest tests.test_cpp_gateway_layout -v
+  ```
+
+- [x] **M4-3 Verify gateway compile path**
+
+  Use WSL/Linux command when available:
+
+  ```bash
+  bash scripts/build_gateway_wsl.sh
+  ```
+
+  Expected: CMake/g++ build succeeds and produces `cpp_gateway/build/llm_gateway`.
+
+- [x] **M4-4 Verify gateway runtime path**
+
+  Start Python API, then start gateway:
+
+  ```bash
+  bash scripts/start_api.sh
+  bash scripts/start_gateway_wsl.sh
+  bash scripts/verify_runtime.sh gateway
+  bash scripts/verify_gateway_smoke.sh
+  ```
+
+  Expected: `/api/health`, `/api/login`, `/api/chat`, and `/api/history` work through port `8080`.
+
+- [x] **M4-5 Update thesis support**
+
+  Update `output/doc/毕业设计说明书初稿.md` Chapter 5 gateway implementation section with actual gateway validation results and command names. Regenerate DOCX:
+
+  ```powershell
+  & 'C:\Users\kidosto\.cache\codex-runtimes\codex-primary-runtime\dependencies\python\python.exe' tools\generate_thesis_docx.py
+  ```
+
+- [x] **M4-6 Commit and push**
+
+  Verification:
+
+  ```powershell
+  python -m unittest discover -s tests -v
+  python -m compileall services tests scripts
+  ```
+
+  Commit:
+
+  ```bash
+  git add -A
+  git commit -m "feat: strengthen gateway validation support"
+  git push -u origin codex/gateway-validation-hardening
+  ```
+
+## M5 Frontend Demo Polish Tasks
+
+**Files:**
+- Modify: `frontend/index.html`
+- Modify: `frontend/admin.html`
+- Modify: `frontend/app.js`
+- Modify: `frontend/admin.js`
+- Modify: `frontend/styles.css`
+- Test: `tests/test_frontend_contract.py`
+
+- [x] **M5-1 Add visible runtime mode**
+
+  Show current API mode and base URL in the user and admin pages.
+
+- [x] **M5-2 Add health/status panel**
+
+  Display `/api/health` fields: `runtime_mode`, `storage_mode`, `model_name`, `session_count`.
+
+- [x] **M5-3 Improve admin overview presentation**
+
+  Make user count, session count, message count, log count, and model name obvious for defense demonstration.
+
+- [x] **M5-4 Preserve direct/gateway mode switching**
+
+  Ensure `?mode=gateway` still routes frontend requests through port `8080`.
+
+- [x] **M5-5 Verify frontend contract**
+
+  Run:
+
+  ```powershell
+  python -m unittest tests.test_frontend_contract -v
+  python -m unittest discover -s tests -v
+  ```
+
+## M6 Real Benchmark Evidence Tasks
+
+**Files:**
+- Use: `scripts/benchmark_gateway.py`
+- Modify: `docs/test-plan.md`
+- Modify: `docs/gateway-validation.md`
+- Modify: `output/doc/毕业设计说明书初稿.md`
+- Create: `output/benchmark/*.json` only if the file is intentionally kept as experiment evidence
+
+- [x] **M6-1 Run health benchmark through gateway**
+
+  ```bash
+  python scripts/benchmark_gateway.py --base-url http://127.0.0.1:8080 --scenario health --requests 1000 --concurrency 100 --output output/benchmark/gateway-health.json
+  ```
+
+- [x] **M6-2 Run chat benchmark through gateway**
+
+  ```bash
+  python scripts/benchmark_gateway.py --base-url http://127.0.0.1:8080 --scenario chat --requests 300 --concurrency 30 --output output/benchmark/gateway-chat.json
+  ```
+
+- [x] **M6-3 Convert JSON results into thesis table values**
+
+  Extract `avg_latency_ms`, `p95_latency_ms`, `throughput_rps`, `success_rate_percent`, and `error_count`.
+
+- [x] **M6-4 Update Chapter 6**
+
+  Replace example-only language with actual measured environment, commands, and results.
+
+## M7 Thesis Finalization Tasks
+
+**Files:**
+- Modify: `output/doc/毕业设计说明书初稿.md`
+- Modify: `output/doc/毕业设计说明书初稿.docx`
+- Possibly modify: `tools/generate_thesis_docx.py`
+- Possibly modify: figure assets under `output/doc/figures/`
+
+- [x] **M7-1 Remove remaining draft wording**
+
+  Search for `建议`, `后续`, `正式定稿`, `补充`, `示例` in thesis body and replace with final-delivery wording where appropriate.
+
+- [x] **M7-2 Finish Chapter 4 figures**
+
+  Ensure architecture diagram, flow diagram, sequence diagram, and E-R diagram are referenced consistently.
+
+- [x] **M7-3 Finish Chapter 5 implementation explanation**
+
+  Tie frontend, Python service, repository, C++ gateway, and benchmark script to actual code paths.
+
+- [x] **M7-4 Finish Chapter 6 test evidence**
+
+  Add measured environment, test commands, benchmark results, screenshots placeholders, and result analysis.
+
+- [x] **M7-5 Regenerate and inspect DOCX**
+
+  Use bundled document Python:
+
+  ```powershell
+  & 'C:\Users\kidosto\.cache\codex-runtimes\codex-primary-runtime\dependencies\python\python.exe' tools\generate_thesis_docx.py
+  ```
+
+## M8 Defense Package Tasks
+
+**Files:**
+- Create: `docs/defense/demo-script.md`
+- Create: `docs/defense/qa-notes.md`
+- Optionally create: `output/presentation/答辩PPT大纲.md`
+
+- [x] **M8-1 Write five-minute demo script**
+
+  Include startup commands, login flow, chat flow, admin overview, gateway mode, and benchmark evidence.
+
+- [x] **M8-2 Write likely Q&A**
+
+  Cover why C++ gateway, why Python service, why epoll is Linux/WSL-only, how persistence works, how tests prove correctness, and what limitations remain.
+
+- [x] **M8-3 Create PPT outline**
+
+  Recommended structure: background, requirements, architecture, implementation, test results, innovation points, summary.
+
+## M9 P1/P2 Enhancement Foundation Tasks
+
+**Files:**
+- Modify: `services/ai_service/app/service.py`
+- Modify: `services/ai_service/app/api.py`
+- Modify: `services/ai_service/app/main.py`
+- Modify: `cpp_gateway/src/http_server.cpp`
+- Modify: `frontend/admin.html`
+- Modify: `frontend/admin.js`
+- Modify: `.env.example`
+- Create: `knowledge_base/project-notes.md`
+- Modify: `README.md`, `docs/runbook.md`, `docs/architecture.md`, `docs/test-plan.md`, `docs/defense/qa-notes.md`, `output/presentation/答辩PPT大纲.md`
+- Test: `tests/python/test_api.py`, `tests/python/test_service.py`, `tests/test_cpp_gateway_layout.py`, `tests/test_frontend_contract.py`, `tests/test_docs.py`
+
+- [x] **M9-1 Add provider and DeepSeek defaults**
+
+  Add `.env.example` defaults for `LLM_API_URL`, `LLM_MODEL_NAME=deepseek-v4-flash`, `LLM_PROVIDER`, and `LLM_PROVIDERS_JSON`. Expose `/api/admin/model-providers` for admin inspection without storing secrets.
+
+- [x] **M9-2 Add knowledge base and response cache foundation**
+
+  Read Markdown snippets from `knowledge_base/`, pass matching context into model calls, and cache repeated same user/model/message/context answers.
+
+- [x] **M9-3 Add remote model fallback logging**
+
+  When the remote OpenAI-compatible call fails, return the demo answer and write one `llm_remote_fallback` log for the actual failed call. Cache hits must not duplicate fallback logs.
+
+- [x] **M9-4 Add streaming interface**
+
+  Add `/api/chat/stream` with Server-Sent Events response format while keeping `/api/chat` as the default stable frontend path.
+
+- [x] **M9-5 Tighten runtime boundary**
+
+  Replace wildcard CORS with `APP_CORS_ORIGINS`, and make the C++ gateway send complete response/request buffers through `SendAll`.
+
+- [x] **M9-6 Add admin benchmark display**
+
+  Let the admin page read `output/benchmark/gateway-health.json` and `output/benchmark/gateway-chat.json` into visible testing cards.
+
+- [x] **M9-7 Verify**
+
+  Run:
+
+  ```powershell
+  python -m unittest discover -s tests -v
+  python -m compileall services tests scripts tools
+  ```
+
+  If WSL is available, also run:
+
+  ```bash
+  bash scripts/build_gateway_wsl.sh
+  ```
+
+- [x] **M9-8 Commit and push**
+
+  Commit the verified P1/P2 work and push `codex/p1-p2-enhancements` to GitHub.
+
+## M10 Real LLM And Multi-Model Collaboration Tasks
+
+**Files:**
+- Modify: `services/ai_service/app/models.py`
+- Modify: `services/ai_service/app/service.py`
+- Modify: `services/ai_service/app/api.py`
+- Modify: `frontend/index.html`
+- Modify: `frontend/app.js`
+- Modify: `frontend/styles.css`
+- Modify: `.gitignore`, `.env.example`
+- Create: `.env.local.example`
+- Modify: `README.md`, `docs/runbook.md`
+- Test: `tests/python/test_api.py`, `tests/python/test_service.py`, `tests/test_frontend_contract.py`, `tests/test_docs.py`
+
+- [x] **M10-1 Add safe local secret loading**
+
+  Read `.env.local` and environment variables at runtime, but keep real API keys out of tracked files. `.env.local.example` documents `DEEPSEEK_API_KEY`, `MIMO_API_KEY`, and `XIAOMI_API_KEY`.
+
+- [x] **M10-2 Add four-model catalog**
+
+  Add `deepseek-v4-pro`, `deepseek-v4-flash`, `mimo-v2.5-pro`, and `mimo-v2.5` with 1,000K context windows and 65,536 max output tokens.
+
+- [x] **M10-3 Add model switching API**
+
+  Add `/api/models`, extend `/api/chat` with `provider` and `model`, and ensure model metadata responses never expose API keys.
+
+- [x] **M10-4 Add multi-model collaboration API**
+
+  Add `/api/chat/collaborate` so multiple selected models can answer in sequence and return both individual rounds and a final combined answer.
+
+- [x] **M10-5 Add frontend model switcher**
+
+  Add a model dropdown, context/max-output display, and a multi-model collaboration button on the user page.
+
+- [x] **M10-6 Verify**
+
+  Verification completed with:
+
+  ```powershell
+  python -m unittest discover -s tests -v
+  python -m compileall services tests scripts tools
+  ```
+
+## End-Of-Task Review Template
+
+After every task, update this section in the next commit or in the module-specific plan.
+
+```text
+Date:
+Branch:
+Commit:
+Completed:
+Verification:
+Remaining:
+Next recommended task:
+Risk or blocker:
+```
+
+## Current Snapshot
+
+Date: 2026-05-06
+Branch: `codex/real-llm-model-collaboration`
+Commit: M6 `65cb88b`, M7 `f4e449b`; M9 `8edf02f`; M10 pending commit
+Completed:
+- M1 foundation runtime mostly completed.
+- M2 Python service first version completed.
+- M3 SQLite persistence support completed in `ad87350`.
+- M6 benchmark script support completed in `4a6bb87`.
+- M4 gateway review, 502 error contract, CMake/g++ fallback build path, WSL gateway forwarding validation, thesis support text, and DOCX regeneration are completed in the current working tree.
+- Verification completed with `python -m unittest discover -s tests -v`, `python -m compileall services tests scripts tools`, `bash scripts/build_gateway_wsl.sh`, `bash scripts/verify_runtime.sh gateway 127.0.0.1 8000 18081`, and `bash scripts/verify_gateway_smoke.sh 127.0.0.1 18081`.
+- Upstream failure validation completed with `UPSTREAM_PORT=65530`; the gateway returned `HTTP/1.1 502 Bad Gateway` and `{"error":"failed to connect upstream"}`.
+- M5 frontend demo polish is implemented in the current working tree: user/admin pages show API base URL and health fields, admin overview uses defense-friendly metric labels, and `?mode=gateway` remains backed by `frontend/config.js`.
+- M6 real benchmark evidence is implemented in local commit `65cb88b`: WSL C++ gateway benchmark JSON files are saved under `output/benchmark`, and Chapter 6 now uses actual measured health/chat values.
+- M7 thesis finalization is implemented in the current working tree: draft placeholders were removed, five core figure assets were generated under `output/doc/figures`, DOCX generation now converts Markdown tables into Word tables and inserts figures into corresponding captions, and Chapter 3-6 wording has been polished for final delivery.
+- M8 defense package is implemented in the current working tree: five-minute demo script, defense Q&A notes, and PPT outline were added with tests.
+- M9 P1/P2 enhancement foundation is implemented in branch `codex/p1-p2-enhancements`: DeepSeek default config, multi-provider admin endpoint, knowledge base retrieval, response cache, stream endpoint, CORS configuration, gateway full-buffer send, and admin benchmark cards are implemented with tests.
+- M9 verification completed with `python -m unittest discover -s tests -v`, `python -m compileall services tests scripts tools`, and WSL `bash scripts/build_gateway_wsl.sh`. WSL build used the script's direct `g++` fallback because `cmake` is not installed in that WSL environment.
+- M10 real LLM and multi-model collaboration is implemented locally in branch `codex/real-llm-model-collaboration`: four model catalog entries, local `.env.local` secret loading, `/api/models`, provider/model selection in `/api/chat`, `/api/chat/collaborate`, user-page model switcher, and documentation are implemented with tests.
+Remaining:
+- No blocking P1/P2 foundation task remains on `codex/p1-p2-enhancements`.
+- M10 still needs commit and push after final status review.
+- Optional extension after M10: implement role-permission details, stronger multi-Agent orchestration, third-party software connectors, and larger Linux benchmark evidence.
+Next recommended task:
+- Commit and push `codex/real-llm-model-collaboration`, then test a real API call only from environment variables or `.env.local` without printing keys.
+Risk or blocker:
+- External LLM API integration requires valid local API keys and must not commit secrets into the repository.
+- Full Linux benchmark evidence is still pending; current gateway evidence is WSL-based and suitable for implementation validation.
