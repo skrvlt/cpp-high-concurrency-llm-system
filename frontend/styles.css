@@ -303,6 +303,23 @@ a {
   font-weight: 700;
 }
 
+.flow-toolbar {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 18px;
+  padding: 12px;
+  border: 1px solid rgba(143, 79, 42, 0.16);
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.62);
+}
+
+.flow-toolbar span {
+  color: var(--muted);
+  overflow-wrap: anywhere;
+}
+
 .health-visual-card {
   display: grid;
   grid-template-columns: 132px 1fr;
@@ -434,6 +451,8 @@ a {
   border: 1px solid rgba(143, 79, 42, 0.2);
   background: linear-gradient(160deg, rgba(255, 255, 255, 0.92), rgba(255, 250, 242, 0.56));
   box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.6);
+  position: relative;
+  transition: transform 260ms ease, box-shadow 260ms ease, border-color 260ms ease;
 }
 
 .flow-node span {
@@ -454,10 +473,64 @@ a {
   background: linear-gradient(160deg, rgba(94, 46, 20, 0.16), rgba(255, 255, 255, 0.78));
 }
 
+.flow-node.is-active,
+.flow-event-card.is-active {
+  border-color: #2f7d4f;
+  box-shadow: 0 0 0 4px rgba(47, 125, 79, 0.14), 0 18px 34px rgba(47, 125, 79, 0.12);
+  transform: translateY(-4px);
+}
+
+.flow-node.is-active::after {
+  content: "";
+  position: absolute;
+  inset: -5px;
+  border-radius: 26px;
+  border: 2px solid rgba(47, 125, 79, 0.42);
+  animation: flowPulse 900ms ease-in-out infinite;
+}
+
+.flow-node.is-done,
+.flow-event-card.is-done {
+  border-color: rgba(47, 125, 79, 0.45);
+}
+
+.flow-node.is-error,
+.flow-event-card.is-error {
+  border-color: #b14a32;
+  box-shadow: 0 0 0 4px rgba(177, 74, 50, 0.12);
+}
+
 .flow-arrow {
   color: var(--brand-strong);
   font-weight: 800;
   text-align: center;
+}
+
+.flow-event-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+  margin-top: 16px;
+}
+
+.flow-event-card {
+  border: 1px solid rgba(143, 79, 42, 0.16);
+  border-radius: 16px;
+  padding: 14px;
+  background: rgba(255, 255, 255, 0.7);
+  transition: transform 260ms ease, box-shadow 260ms ease, border-color 260ms ease;
+}
+
+.flow-event-card span {
+  display: block;
+  color: var(--muted);
+  font-size: 13px;
+  margin-bottom: 8px;
+}
+
+.flow-event-card strong {
+  color: var(--brand-strong);
+  overflow-wrap: anywhere;
 }
 
 .demo-module-grid {
@@ -554,12 +627,28 @@ a {
   background: rgba(255, 255, 255, 0.66);
 }
 
+@keyframes flowPulse {
+  0% {
+    opacity: 0.25;
+    transform: scale(0.98);
+  }
+  50% {
+    opacity: 0.75;
+    transform: scale(1.01);
+  }
+  100% {
+    opacity: 0.25;
+    transform: scale(0.98);
+  }
+}
+
 @media (max-width: 1080px) {
   .layout,
   .admin-layout,
   .demo-grid-wide,
   .demo-module-grid,
   .flow-map,
+  .flow-event-grid,
   .benchmark-visual-grid {
     grid-template-columns: 1fr;
   }

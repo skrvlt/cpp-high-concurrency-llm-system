@@ -6,6 +6,8 @@ const demoEndpointConfig =
   { API_BASE: "http://127.0.0.1:8000/api", gateway: false };
 
 const DEMO_API_BASE = demoEndpointConfig.API_BASE;
+let demoAuthToken = "";
+let demoAdminToken = "";
 
 function demoApiUrl(endpoint) {
   const base = DEMO_API_BASE.replace(/\/+$/, "");
@@ -30,6 +32,106 @@ function createDemoElement(tag, text, className = "") {
   if (className) node.className = className;
   node.textContent = text === undefined || text === null ? "" : String(text);
   return node;
+}
+
+function sleep(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+function setFlowStatus(text) {
+  setDemoText("demo-flow-status", text);
+}
+
+function clearFlowHighlights() {
+  document.querySelectorAll("[data-flow-step]").forEach((node) => {
+    node.classList.remove("is-active", "is-done", "is-error");
+  });
+}
+
+async function activateFlowStep(step, label) {
+  document.querySelectorAll(`[data-flow-step="${step}"]`).forEach((node) => {
+    node.classList.add("is-active");
+  });
+  setFlowStatus(label);
+  await sleep(420);
+  document.querySelectorAll(`[data-flow-step="${step}"]`).forEach((node) => {
+    node.classList.remove("is-active");
+    node.classList.add("is-done");
+  });
+}
+
+function renderRuntimeMode() {
+  const modeText = demoEndpointConfig.gateway ? "网关模式：请求经 C++ 8080 转发" : "直连模式：请求直达 Python 8000";
+  setDemoText("demo-gateway-mode", modeText);
+  setDemoText("demo-mode-badge", demoEndpointConfig.gateway ? "网关模式" : "直连模式");
+}
+
+async function postJson(endpoint, payload) {
+  const startedAt = performance.now();
+  const response = await fetch(demoApiUrl(endpoint), {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+  const data = await response.json();
+  setDemoText("demo-last-latency", `${Math.round(performance.now() - startedAt)} ms`);
+  if (!response.ok) throw new Error(data.detail || `${endpoint} failed`);
+  return data;
+}
+
+async function getJson(endpoint, token = "") {
+  const startedAt = performance.now();
+  const headers = token ? { Authorization: `Bearer ${token}` } : {};
+  const response = await fetch(demoApiUrl(endpoint), { headers });
+  const data = await response.json();
+  setDemoText("demo-last-latency", `${Math.round(performance.now() - startedAt)} ms`);
+  if (!response.ok) throw new Error(data.detail || `${endpoint} failed`);
+  return data;
+}
+
+async function runRequestFlowDemo() {
+  clearFlowHighlights();
+  const button = document.getElementById("demo-flow-btn");
+  if (button) button.disabled = true;
+  try {
+    await activateFlowStep("browser", "浏览器发起演示请求：准备登录测试用户");
+    const login = await postJson("/api/login", {
+      username: "student",
+      password: "student123",
+    });
+    demoAuthToken = login.token;
+
+    await activateFlowStep("gateway", demoEndpointConfig.gateway ? "请求进入 C++ epoll 网关并转发" : "当前为直连模式，网关节点作为架构展示");
+    await activateFlowStep("api", "Python FastAPI 校验 token、组织问答请求");
+    const chat = await postJson("/api/chat", {
+      token: demoAuthToken,
+      message: "请用一句话说明这个毕业设计系统的核心亮点",
+      provider: "deepseek",
+      model: "deepseek-v4-flash",
+    });
+
+    await activateFlowStep("llm", `LLM 模型层返回回答：${chat.model || "demo-llm"}`);
+    const history = await getJson("/api/history", demoAuthToken);
+    setDemoText("demo-flow-history", `${(history.messages || []).length} 条消息`);
+    await activateFlowStep("history", "历史记录已写入并读取");
+
+    const adminLogin = await postJson("/api/login", {
+      username: "admin",
+      password: "admin123",
+    });
+    demoAdminToken = adminLogin.token;
+    const overview = await getJson("/api/admin/overview", demoAdminToken);
+    setDemoText("demo-flow-overview", `${overview.session_count || 0} 个会话 / ${overview.message_count || 0} 条消息`);
+    await activateFlowStep("admin", "管理员概览已刷新，日志和会话数据可展示");
+
+    setFlowStatus("完整请求流转完成：浏览器 → 网关/API → LLM → 历史记录 → 管理概览");
+    await loadDemoHealth();
+  } catch (error) {
+    setFlowStatus(`演示请求失败：${error.message || error}`);
+    document.querySelectorAll("[data-flow-step]").forEach((node) => node.classList.add("is-error"));
+  } finally {
+    if (button) button.disabled = false;
+  }
 }
 
 function renderHealthBars(items) {
@@ -211,6 +313,8 @@ async function loadDemoBenchmarks() {
 
 document.getElementById("demo-refresh-btn").addEventListener("click", loadDemoHealth);
 document.getElementById("demo-benchmark-btn").addEventListener("click", loadDemoBenchmarks);
+document.getElementById("demo-flow-btn").addEventListener("click", runRequestFlowDemo);
 
+renderRuntimeMode();
 loadDemoHealth();
 loadDemoBenchmarks();

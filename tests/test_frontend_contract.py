@@ -122,10 +122,19 @@ class FrontendContractTests(unittest.TestCase):
             "后端健康检查可视化",
             "健康评分",
             "原始 JSON",
+            "请求流转动画",
+            "一键演示完整请求",
+            "最近一次请求耗时",
+            "网关模式",
         ]:
             self.assertIn(marker, demo_html + demo_js)
         self.assertIn("gateway-health.json", demo_js)
         self.assertIn("gateway-chat.json", demo_js)
         self.assertIn("/api/health", demo_js)
+        self.assertIn("/api/login", demo_js)
+        self.assertIn("/api/chat", demo_js)
+        self.assertIn("/api/history", demo_js)
+        self.assertIn("/api/admin/overview", demo_js)
         self.assertIn("renderHealthVisualization", demo_js)
+        self.assertIn("runRequestFlowDemo", demo_js)
         self.assertIn("demo-health-json", demo_html)

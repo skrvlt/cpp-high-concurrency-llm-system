@@ -26,29 +26,51 @@
     <section class="demo-grid-wide">
       <article class="panel demo-architecture">
         <div class="panel-header">
-          <h2>系统链路可视化</h2>
-          <span class="recording-badge">适合视频 0:30-1:20</span>
+          <h2>请求流转动画</h2>
+          <span class="recording-badge" id="demo-mode-badge">直连模式</span>
+        </div>
+        <div class="flow-toolbar">
+          <button id="demo-flow-btn">一键演示完整请求</button>
+          <span id="demo-flow-status">等待演示：浏览器 → 网关/API → LLM → 历史与概览</span>
         </div>
         <div class="flow-map" aria-label="系统架构流向">
-          <div class="flow-node browser">
+          <div class="flow-node browser" data-flow-step="browser">
             <span>浏览器前端</span>
             <strong>用户端 / 管理端</strong>
           </div>
           <div class="flow-arrow">HTTP</div>
-          <div class="flow-node gateway">
+          <div class="flow-node gateway" data-flow-step="gateway">
             <span>C++ epoll 网关</span>
             <strong>8080 / 线程池 / 转发</strong>
           </div>
           <div class="flow-arrow">Proxy</div>
-          <div class="flow-node api">
+          <div class="flow-node api" data-flow-step="api">
             <span>Python FastAPI 服务</span>
             <strong>8000 / 登录 / 问答 / 日志</strong>
           </div>
           <div class="flow-arrow">Async</div>
-          <div class="flow-node llm">
+          <div class="flow-node llm" data-flow-step="llm">
             <span>LLM 模型层</span>
             <strong>DeepSeek / MiMo / fallback</strong>
           </div>
+        </div>
+        <div class="flow-event-grid">
+          <article class="flow-event-card" data-flow-step="history">
+            <span>历史记录</span>
+            <strong id="demo-flow-history">未触发</strong>
+          </article>
+          <article class="flow-event-card" data-flow-step="admin">
+            <span>管理员概览</span>
+            <strong id="demo-flow-overview">未触发</strong>
+          </article>
+          <article class="flow-event-card">
+            <span>最近一次请求耗时</span>
+            <strong id="demo-last-latency">未检测</strong>
+          </article>
+          <article class="flow-event-card">
+            <span>网关模式</span>
+            <strong id="demo-gateway-mode">未检测</strong>
+          </article>
         </div>
       </article>
 
