@@ -104,3 +104,23 @@ class FrontendContractTests(unittest.TestCase):
 
         self.assertIn("function apiUrl", app_js)
         self.assertNotIn('replace("/api", "")', app_js)
+
+    def test_video_demo_dashboard_exists_and_covers_system_modules(self):
+        root = Path.cwd()
+        demo_html = (root / "frontend" / "demo.html").read_text(encoding="utf-8")
+        demo_js = (root / "frontend" / "demo.js").read_text(encoding="utf-8")
+
+        for marker in [
+            "视频录制演示驾驶舱",
+            "C++ epoll 网关",
+            "Python FastAPI 服务",
+            "LLM 模型层",
+            "多模型协作",
+            "SQLite / 日志",
+            "压测结果",
+            "5 分钟录制脚本",
+        ]:
+            self.assertIn(marker, demo_html + demo_js)
+        self.assertIn("gateway-health.json", demo_js)
+        self.assertIn("gateway-chat.json", demo_js)
+        self.assertIn("/api/health", demo_js)

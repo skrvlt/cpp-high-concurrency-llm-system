@@ -36,8 +36,10 @@ Windows 原生不承诺运行 epoll 网关，因为 epoll 是 Linux 内核机制
 frontend/
   index.html            用户端页面
   admin.html            管理员页面
+  demo.html             5 分钟视频录制演示驾驶舱
   app.js                登录、问答、历史、模型切换、多模型协作
   admin.js              后台概览、日志、配置、测试结果展示
+  demo.js               演示驾驶舱状态、压测结果和录屏素材展示
   config.js             direct/gateway 前端接口模式配置
   styles.css            页面样式
 
@@ -168,6 +170,23 @@ http://127.0.0.1:5500/frontend/admin.html
 ```text
 admin / admin123
 ```
+
+## 视频录制演示入口
+
+如果需要录制 5 分钟左右的项目展示视频，建议优先打开演示驾驶舱：
+
+```text
+http://127.0.0.1:5500/frontend/demo.html
+```
+
+该页面用于录屏讲解，不替代用户端和管理员端。它集中展示 C++ epoll 网关、Python FastAPI 服务、LLM 模型层、多模型协作、SQLite / 日志、压测结果和 5 分钟录制脚本，并提供跳转到用户端、管理端和 `/api/health` 的入口。
+
+推荐录制顺序：
+
+1. 先展示 `demo.html` 的系统链路可视化和模块卡片。
+2. 点击“打开用户端”，演示登录、普通问答、模型选择和多模型协作。
+3. 点击“打开管理端”，演示系统概览、日志、配置和压测结果。
+4. 回到 `demo.html`，展示压测结果和 C++ 网关专项价值。
 
 ## Windows 运行
 

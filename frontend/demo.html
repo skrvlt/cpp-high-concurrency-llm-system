@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>视频录制演示驾驶舱</title>
+  <link rel="stylesheet" href="./styles.css">
+</head>
+<body class="demo-body">
+  <main class="demo-shell">
+    <section class="demo-hero panel">
+      <div>
+        <p class="eyebrow">Graduation Project Recording Console</p>
+        <h1>视频录制演示驾驶舱</h1>
+        <p class="subtitle">
+          用一个页面串联 C++ epoll 网关、Python FastAPI 服务、LLM 模型层、多模型协作、SQLite / 日志和压测结果。
+        </p>
+      </div>
+      <div class="demo-actions">
+        <a class="demo-link primary" href="./index.html">打开用户端</a>
+        <a class="demo-link" href="./admin.html">打开管理端</a>
+        <a class="demo-link" id="health-link" href="http://127.0.0.1:8000/api/health">后端健康检查</a>
+      </div>
+    </section>
+
+    <section class="demo-grid-wide">
+      <article class="panel demo-architecture">
+        <div class="panel-header">
+          <h2>系统链路可视化</h2>
+          <span class="recording-badge">适合视频 0:30-1:20</span>
+        </div>
+        <div class="flow-map" aria-label="系统架构流向">
+          <div class="flow-node browser">
+            <span>浏览器前端</span>
+            <strong>用户端 / 管理端</strong>
+          </div>
+          <div class="flow-arrow">HTTP</div>
+          <div class="flow-node gateway">
+            <span>C++ epoll 网关</span>
+            <strong>8080 / 线程池 / 转发</strong>
+          </div>
+          <div class="flow-arrow">Proxy</div>
+          <div class="flow-node api">
+            <span>Python FastAPI 服务</span>
+            <strong>8000 / 登录 / 问答 / 日志</strong>
+          </div>
+          <div class="flow-arrow">Async</div>
+          <div class="flow-node llm">
+            <span>LLM 模型层</span>
+            <strong>DeepSeek / MiMo / fallback</strong>
+          </div>
+        </div>
+      </article>
+
+      <aside class="panel demo-runtime">
+        <div class="panel-header">
+          <h2>运行状态</h2>
+          <button id="demo-refresh-btn">刷新</button>
+        </div>
+        <div class="status-grid">
+          <article class="status-card wide">
+            <span>API 地址</span>
+            <strong id="demo-api-base">未检测</strong>
+          </article>
+          <article class="status-card">
+            <span>后端状态</span>
+            <strong id="demo-health-status">未检测</strong>
+          </article>
+          <article class="status-card">
+            <span>存储模式</span>
+            <strong id="demo-storage-mode">未检测</strong>
+          </article>
+          <article class="status-card">
+            <span>模型名称</span>
+            <strong id="demo-model-name">未检测</strong>
+          </article>
+          <article class="status-card">
+            <span>模型供应商</span>
+            <strong id="demo-provider-count">未检测</strong>
+          </article>
+        </div>
+      </aside>
+    </section>
+
+    <section class="demo-module-grid">
+      <article class="module-card">
+        <span class="module-index">01</span>
+        <h3>C++ epoll 网关</h3>
+        <p>展示高并发专项模块：Linux/WSL 编译，监听 8080，接收请求后转发到 Python 上游。</p>
+        <ul>
+          <li>epoll 事件循环</li>
+          <li>线程池处理请求</li>
+          <li>502 Bad Gateway 异常返回</li>
+        </ul>
+      </article>
+      <article class="module-card">
+        <span class="module-index">02</span>
+        <h3>Python FastAPI 服务</h3>
+        <p>承担登录、聊天、历史记录、管理员概览、配置维护和模型调用编排。</p>
+        <ul>
+          <li>/api/login</li>
+          <li>/api/chat</li>
+          <li>/api/admin/overview</li>
+        </ul>
+      </article>
+      <article class="module-card">
+        <span class="module-index">03</span>
+        <h3>LLM 模型层</h3>
+        <p>支持 DeepSeek 与 MiMo 模型元数据展示，真实 Key 本地配置，失败时自动降级演示回答。</p>
+        <ul>
+          <li>DeepSeek v4 Pro / Flash</li>
+          <li>MiMo v2.5 Pro / v2.5</li>
+          <li>异步 httpx 调用</li>
+        </ul>
+      </article>
+      <article class="module-card">
+        <span class="module-index">04</span>
+        <h3>多模型协作</h3>
+        <p>多个模型按顺序参考前一轮回答，形成可展示的协作式问答流程。</p>
+        <ul>
+          <li>模型选择</li>
+          <li>轮次回答</li>
+          <li>最终综合结论</li>
+        </ul>
+      </article>
+      <article class="module-card">
+        <span class="module-index">05</span>
+        <h3>SQLite / 日志</h3>
+        <p>memory 模式适合答辩演示，SQLite 模式可验证会话、消息、日志和配置持久化。</p>
+        <ul>
+          <li>会话保存</li>
+          <li>管理员日志</li>
+          <li>配置维护</li>
+        </ul>
+      </article>
+      <article class="module-card">
+        <span class="module-index">06</span>
+        <h3>压测结果</h3>
+        <p>读取本地网关压测 JSON，展示成功率、吞吐量和 P95 延迟，证明系统具备性能实验材料。</p>
+        <ul>
+          <li>gateway-health.json</li>
+          <li>gateway-chat.json</li>
+          <li>吞吐量 / 延迟 / 错误率</li>
+        </ul>
+      </article>
+    </section>
+
+    <section class="demo-grid-wide">
+      <article class="panel">
+        <div class="panel-header">
+          <h2>压测结果可视化</h2>
+          <button id="demo-benchmark-btn">加载压测结果</button>
+        </div>
+        <div id="demo-benchmark-box" class="benchmark-visual-grid"></div>
+      </article>
+
+      <article class="panel">
+        <div class="panel-header">
+          <h2>5 分钟录制脚本</h2>
+          <span class="recording-badge">按顺序讲即可</span>
+        </div>
+        <ol class="recording-script">
+          <li><strong>0:00-0:30</strong> 说明项目主题：C++ 高并发架构与语言大模型交互系统。</li>
+          <li><strong>0:30-1:20</strong> 指向系统链路：浏览器、C++ 网关、Python API、LLM 模型层。</li>
+          <li><strong>1:20-2:10</strong> 打开用户端，登录并发送一次普通问答。</li>
+          <li><strong>2:10-3:00</strong> 展示模型切换和多模型协作回答。</li>
+          <li><strong>3:00-3:50</strong> 打开管理端，展示概览、日志、配置和模型供应商。</li>
+          <li><strong>3:50-4:30</strong> 回到驾驶舱，展示压测结果和 C++ 网关专项价值。</li>
+          <li><strong>4:30-5:00</strong> 总结跨平台运行、可扩展性和毕业设计完成度。</li>
+        </ol>
+      </article>
+    </section>
+  </main>
+  <script src="./config.js"></script>
+  <script src="./demo.js"></script>
+</body>
+</html>
