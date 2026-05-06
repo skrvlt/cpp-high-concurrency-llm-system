@@ -1,12 +1,15 @@
 from __future__ import annotations
 
+import asyncio
 import json
 import os
 import secrets
 from dataclasses import dataclass
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from typing import Dict
-from urllib.request import Request, urlopen
+
+import httpx
 
 from .models import ChatResponse, HistoryResponse, LogEntry, TokenState
 from .repository import InMemoryRepository, Repository, SQLiteRepository
@@ -234,8 +237,21 @@ class DemoModelClient:
         provider: ModelProvider | None = None,
         model: ModelCatalogItem | None = None,
     ) -> str:
+        return asyncio.run(
+            self.answer_async(message, username, config, context, provider, model)
+        )
+
+    async def answer_async(
+        self,
+        message: str,
+        username: str,
+        config: Dict[str, str],
+        context: str = "",
+        provider: ModelProvider | None = None,
+        model: ModelCatalogItem | None = None,
+    ) -> str:
         self.last_error = None
-        remote_answer = self._try_remote_answer(
+        remote_answer = await self._try_remote_answer(
             message, username, config, context, provider, model
         )
         if remote_answer:
@@ -249,7 +265,7 @@ class DemoModelClient:
             "这是第一版演示回答，后续可替换为真实大语言模型接口。"
         )
 
-    def _try_remote_answer(
+    async def _try_remote_answer(
         self,
         message: str,
         username: str,
@@ -307,16 +323,11 @@ class DemoModelClient:
         if api_key:
             headers["Authorization"] = f"Bearer {api_key}"
 
-        request = Request(
-            api_url,
-            data=json.dumps(payload).encode("utf-8"),
-            headers=headers,
-            method="POST",
-        )
-
         try:
-            with urlopen(request, timeout=20) as response:
-                body = json.loads(response.read().decode("utf-8"))
+            async with httpx.AsyncClient(timeout=20) as client:
+                response = await client.post(api_url, json=payload, headers=headers)
+                response.raise_for_status()
+                body = response.json()
             return (
                 body.get("choices", [{}])[0]
                 .get("message", {})
@@ -338,14 +349,34 @@ def create_repository_from_env() -> Repository:
 
 
 class AppService:
-    def __init__(self, repository: Repository | None = None) -> None:
+    def __init__(
+        self,
+        repository: Repository | None = None,
+        token_ttl_seconds: int | None = None,
+    ) -> None:
         self.repository = repository or create_repository_from_env()
         self.tokens: Dict[str, TokenState] = {}
         self.model_client = DemoModelClient()
         self.knowledge_base = KnowledgeBase()
         self.response_cache: Dict[str, str] = {}
+        self.token_ttl_seconds = (
+            token_ttl_seconds
+            if token_ttl_seconds is not None
+            else int(os.getenv("APP_TOKEN_TTL_SECONDS", "28800"))
+        )
+
+    def _cleanup_expired_tokens(self) -> None:
+        now = datetime.now(UTC)
+        expired = [
+            token
+            for token, state in self.tokens.items()
+            if state.expires_at <= now
+        ]
+        for token in expired:
+            self.tokens.pop(token, None)
 
     def login(self, username: str, password: str) -> str:
+        self._cleanup_expired_tokens()
         user = self.repository.get_user(username)
         if not user or user.password != password:
             self.repository.add_log(
@@ -360,7 +391,11 @@ class AppService:
         session = self.repository.create_session(username=username, title="默认会话")
         token = secrets.token_hex(16)
         self.tokens[token] = TokenState(
-            token=token, username=user.username, role=user.role, session_id=session.id
+            token=token,
+            username=user.username,
+            role=user.role,
+            session_id=session.id,
+            expires_at=datetime.now(UTC) + timedelta(seconds=self.token_ttl_seconds),
         )
         self.repository.add_log(
             LogEntry(
@@ -372,12 +407,18 @@ class AppService:
         return token
 
     def get_token_state(self, token: str) -> TokenState:
+        self._cleanup_expired_tokens()
         state = self.tokens.get(token)
         if not state:
             raise ValueError("无效 token")
         return state
 
     def chat(
+        self, token: str, message: str, provider_name: str | None = None, model_name: str | None = None
+    ) -> ChatResponse:
+        return asyncio.run(self.chat_async(token, message, provider_name, model_name))
+
+    async def chat_async(
         self, token: str, message: str, provider_name: str | None = None, model_name: str | None = None
     ) -> ChatResponse:
         state = self.get_token_state(token)
@@ -393,9 +434,14 @@ class AppService:
             answer = self.response_cache[cache_key]
             used_cache = True
         else:
-            answer = self.model_client.answer(
-                message, state.username, config, context, provider, model
-            )
+            if hasattr(self.model_client, "answer_async"):
+                answer = await self.model_client.answer_async(
+                    message, state.username, config, context, provider, model
+                )
+            else:
+                answer = self.model_client.answer(
+                    message, state.username, config, context, provider, model
+                )
             self.response_cache[cache_key] = answer
             used_cache = False
         if not used_cache and getattr(self.model_client, "last_error", None):
@@ -440,6 +486,9 @@ class AppService:
         ]
 
     def collaborate(self, token: str, message: str, participants: list[dict[str, str]]):
+        return asyncio.run(self.collaborate_async(token, message, participants))
+
+    async def collaborate_async(self, token: str, message: str, participants: list[dict[str, str]]):
         state = self.get_token_state(token)
         config = self.repository.get_config()
         context = self.knowledge_base.search(message)
@@ -460,9 +509,14 @@ class AppService:
                     f"其他模型已有回答：{prior_answers}\n"
                     "请你指出可以补充或修正的地方，并给出自己的答案。"
                 )
-            answer = self.model_client.answer(
-                prompt, state.username, config, context, provider, model
-            )
+            if hasattr(self.model_client, "answer_async"):
+                answer = await self.model_client.answer_async(
+                    prompt, state.username, config, context, provider, model
+                )
+            else:
+                answer = self.model_client.answer(
+                    prompt, state.username, config, context, provider, model
+                )
             if getattr(self.model_client, "last_error", None):
                 self.repository.add_log(
                     LogEntry(
@@ -570,7 +624,10 @@ class AppService:
             "session_count": len(sessions),
             "message_count": message_count,
             "log_count": len(logs),
-            "model_name": self.repository.get_config().get("model_name", "demo-llm"),
+            "model_name": os.getenv(
+                "LLM_MODEL_NAME",
+                self.repository.get_config().get("model_name", "demo-llm"),
+            ),
         }
 
     def model_providers(self, token: str):

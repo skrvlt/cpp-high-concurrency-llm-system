@@ -98,3 +98,9 @@ class FrontendContractTests(unittest.TestCase):
         self.assertIn("/chat/collaborate", app_js)
         self.assertIn("provider", app_js)
         self.assertIn("model", app_js)
+
+    def test_user_frontend_uses_stable_api_url_joining(self):
+        app_js = (Path.cwd() / "frontend" / "app.js").read_text(encoding="utf-8")
+
+        self.assertIn("function apiUrl", app_js)
+        self.assertNotIn('replace("/api", "")', app_js)

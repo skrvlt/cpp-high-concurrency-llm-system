@@ -12,6 +12,18 @@ const MODELS_ENDPOINT = "/api/models";
 let authToken = "";
 let modelCatalog = [];
 
+function apiUrl(endpoint) {
+  const base = API_BASE.replace(/\/+$/, "");
+  const path = endpoint.startsWith("/") ? endpoint : `/${endpoint}`;
+  if (base.endsWith("/api") && (path === "/api" || path.startsWith("/api/"))) {
+    return `${base}${path.slice(4)}`;
+  }
+  if (!base.endsWith("/api") && !path.startsWith("/api")) {
+    return `${base}/api${path}`;
+  }
+  return `${base}${path}`;
+}
+
 function createTextElement(tag, text, className = "") {
   const node = document.createElement(tag);
   if (className) node.className = className;
@@ -78,7 +90,7 @@ async function loadModels() {
   const select = document.getElementById("model-select");
   if (!select) return;
   try {
-    const res = await fetch(`${API_BASE}${MODELS_ENDPOINT.replace("/api", "")}`);
+    const res = await fetch(apiUrl(MODELS_ENDPOINT));
     const data = await res.json();
     modelCatalog = (data.items || []).filter((item) => item.enabled !== false);
     select.replaceChildren();
@@ -103,7 +115,7 @@ async function loadModels() {
 async function loadHealthStatus() {
   setText("api-base-value", API_BASE);
   try {
-    const res = await fetch(`${API_BASE}/health`);
+    const res = await fetch(apiUrl("/health"));
     const data = await res.json();
     if (!res.ok) {
       setText("health-runtime-mode", "接口异常");
@@ -121,7 +133,7 @@ async function loadHealthStatus() {
 async function login() {
   const username = document.getElementById("username").value.trim();
   const password = document.getElementById("password").value.trim();
-  const res = await fetch(`${API_BASE}${LOGIN_ENDPOINT.replace("/api", "")}`, {
+  const res = await fetch(apiUrl(LOGIN_ENDPOINT), {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ username, password }),
@@ -147,7 +159,7 @@ async function sendMessage() {
 
   appendMessage("我", message);
   const selected = selectedModel();
-  const res = await fetch(`${API_BASE}${CHAT_ENDPOINT.replace("/api", "")}`, {
+  const res = await fetch(apiUrl(CHAT_ENDPOINT), {
     method: "POST",
     headers: { "Content-Type": "application/json", ...authHeaders() },
     body: JSON.stringify({
@@ -181,7 +193,7 @@ async function collaborate() {
     provider: item.provider,
     model: item.model,
   }));
-  const res = await fetch(`${API_BASE}/chat/collaborate`, {
+  const res = await fetch(apiUrl("/chat/collaborate"), {
     method: "POST",
     headers: { "Content-Type": "application/json", ...authHeaders() },
     body: JSON.stringify({ token: authToken, message, participants }),
@@ -202,7 +214,7 @@ async function collaborate() {
 
 async function loadHistory() {
   if (!authToken) return;
-  const res = await fetch(`${API_BASE}/history`, { headers: authHeaders() });
+  const res = await fetch(apiUrl("/history"), { headers: authHeaders() });
   const data = await res.json();
   const box = document.getElementById("history-list");
   box.replaceChildren();

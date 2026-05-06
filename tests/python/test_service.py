@@ -1,6 +1,8 @@
+import asyncio
 import unittest
 from pathlib import Path
-from unittest.mock import MagicMock, patch
+from datetime import UTC, datetime, timedelta
+from unittest.mock import patch
 from uuid import uuid4
 
 from services.ai_service.app.service import (
@@ -27,13 +29,29 @@ class ServiceTests(unittest.TestCase):
 
     def test_demo_model_client_uses_remote_api_when_env_is_configured(self):
         client = DemoModelClient()
-        mock_response = MagicMock()
-        mock_response.read.return_value = (
-            b'{"choices":[{"message":{"content":"\xe8\xbf\x9c\xe7\xa8\x8b\xe6\xa8\xa1\xe5\x9e\x8b\xe5\x9b\x9e\xe5\xa4\x8d"}}]}'
-        )
-        mock_context = MagicMock()
-        mock_context.__enter__.return_value = mock_response
-        mock_context.__exit__.return_value = False
+
+        class FakeResponse:
+            def raise_for_status(self):
+                return None
+
+            def json(self):
+                return {"choices": [{"message": {"content": "远程模型回复"}}]}
+
+        class FakeAsyncClient:
+            def __init__(self, *args, **kwargs):
+                self.kwargs = kwargs
+
+            async def __aenter__(self):
+                return self
+
+            async def __aexit__(self, exc_type, exc, traceback):
+                return False
+
+            async def post(self, url, json, headers):
+                self.url = url
+                self.payload = json
+                self.headers = headers
+                return FakeResponse()
 
         with patch.dict(
             "os.environ",
@@ -44,10 +62,45 @@ class ServiceTests(unittest.TestCase):
             },
             clear=False,
         ):
-            with patch("services.ai_service.app.service.urlopen", return_value=mock_context):
-                answer = client.answer("你好", "student", {"model_name": "local-model"})
+            with patch(
+                "services.ai_service.app.service.urlopen",
+                side_effect=AssertionError("urlopen should not be used"),
+                create=True,
+            ):
+                with patch("services.ai_service.app.service.httpx.AsyncClient", FakeAsyncClient):
+                    answer = asyncio.run(client.answer_async("你好", "student", {"model_name": "local-model"}))
 
         self.assertEqual("远程模型回复", answer)
+
+    def test_token_state_expires_and_is_cleaned_up(self):
+        service = AppService()
+        token = service.login("student", "student123")
+        service.tokens[token].expires_at = datetime.now(UTC) - timedelta(seconds=1)
+
+        with self.assertRaises(ValueError):
+            service.get_token_state(token)
+
+        self.assertNotIn(token, service.tokens)
+
+    def test_overview_reports_configured_environment_model_name(self):
+        service = AppService()
+        token = service.login("admin", "admin123")
+
+        with patch.dict("os.environ", {"LLM_MODEL_NAME": "deepseek-v4-flash"}, clear=False):
+            overview = service.overview(token)
+
+        self.assertEqual("deepseek-v4-flash", overview["model_name"])
+
+    def test_demo_model_client_sync_wrapper_uses_async_remote_api(self):
+        client = DemoModelClient()
+
+        async def fake_answer(*args, **kwargs):
+            return "async-wrapper-answer"
+
+        with patch.object(client, "answer_async", side_effect=fake_answer):
+            answer = client.answer("你好", "student", {"model_name": "local-model"})
+
+        self.assertEqual("async-wrapper-answer", answer)
 
     def test_sqlite_repository_persists_sessions_config_and_logs(self):
         db_dir = Path.cwd() / "tmp" / "test-data"
@@ -98,6 +151,19 @@ class ServiceTests(unittest.TestCase):
         self.assertIsInstance(repository, SQLiteRepository)
 
     def test_remote_model_failure_is_logged_as_fallback(self):
+        class FailingAsyncClient:
+            def __init__(self, *args, **kwargs):
+                pass
+
+            async def __aenter__(self):
+                return self
+
+            async def __aexit__(self, exc_type, exc, traceback):
+                return False
+
+            async def post(self, *args, **kwargs):
+                raise TimeoutError("timeout")
+
         service = AppService()
         token = service.login("student", "student123")
         with patch.dict(
@@ -108,10 +174,7 @@ class ServiceTests(unittest.TestCase):
             },
             clear=False,
         ):
-            with patch(
-                "services.ai_service.app.service.urlopen",
-                side_effect=TimeoutError("timeout"),
-            ):
+            with patch("services.ai_service.app.service.httpx.AsyncClient", FailingAsyncClient):
                 reply = service.chat(token, "远程失败降级测试")
 
         self.assertIn("远程失败降级测试", reply.answer)
@@ -194,6 +257,19 @@ class ServiceTests(unittest.TestCase):
         self.assertIn("mimo-v2.5", result["final_answer"])
 
     def test_cached_answer_does_not_log_remote_fallback_again(self):
+        class FailingAsyncClient:
+            def __init__(self, *args, **kwargs):
+                pass
+
+            async def __aenter__(self):
+                return self
+
+            async def __aexit__(self, exc_type, exc, traceback):
+                return False
+
+            async def post(self, *args, **kwargs):
+                raise TimeoutError("timeout")
+
         service = AppService()
         token = service.login("student", "student123")
         with patch.dict(
@@ -204,10 +280,7 @@ class ServiceTests(unittest.TestCase):
             },
             clear=False,
         ):
-            with patch(
-                "services.ai_service.app.service.urlopen",
-                side_effect=TimeoutError("timeout"),
-            ):
+            with patch("services.ai_service.app.service.httpx.AsyncClient", FailingAsyncClient):
                 service.chat(token, "缓存后的降级日志测试")
                 service.chat(token, "缓存后的降级日志测试")
 

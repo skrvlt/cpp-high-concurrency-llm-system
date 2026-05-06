@@ -10,6 +10,7 @@
 
 #include <cerrno>
 #include <cstring>
+#include <iomanip>
 #include <iostream>
 #include <sstream>
 #include <stdexcept>
@@ -23,11 +24,34 @@ constexpr int kUpstreamIoTimeoutSeconds = 10;
 std::string JsonEscape(const std::string &input) {
     std::string output;
     output.reserve(input.size());
-    for (char ch : input) {
-        if (ch == '"' || ch == '\\') {
-            output.push_back('\\');
+    for (unsigned char ch : input) {
+        switch (ch) {
+        case '"':
+            output += "\\\"";
+            break;
+        case '\\':
+            output += "\\\\";
+            break;
+        case '\n':
+            output += "\\n";
+            break;
+        case '\r':
+            output += "\\r";
+            break;
+        case '\t':
+            output += "\\t";
+            break;
+        default:
+            if (ch < 0x20) {
+                std::ostringstream escaped;
+                escaped << "\\u00" << std::hex << std::setw(2)
+                        << std::setfill('0') << static_cast<int>(ch);
+                output += escaped.str();
+            } else {
+                output.push_back(static_cast<char>(ch));
+            }
+            break;
         }
-        output.push_back(ch);
     }
     return output;
 }

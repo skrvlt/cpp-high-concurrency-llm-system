@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from typing import Dict, List
 
 from pydantic import BaseModel, Field
@@ -44,6 +44,9 @@ class TokenState:
     username: str
     role: str
     session_id: int
+    expires_at: datetime = field(
+        default_factory=lambda: datetime.now(UTC) + timedelta(hours=8)
+    )
 
 
 class LoginRequest(BaseModel):

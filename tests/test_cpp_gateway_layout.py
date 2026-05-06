@@ -91,3 +91,13 @@ class CppGatewayLayoutTests(unittest.TestCase):
         self.assertIn("bool SendAll", source)
         self.assertIn("SendAll(client_fd", source)
         self.assertIn("SendAll(upstream_fd", source)
+
+    def test_cpp_gateway_json_escape_handles_control_characters(self):
+        source = (Path.cwd() / "cpp_gateway" / "src" / "http_server.cpp").read_text(
+            encoding="utf-8"
+        )
+
+        self.assertIn("case '\\n'", source)
+        self.assertIn("case '\\r'", source)
+        self.assertIn("case '\\t'", source)
+        self.assertIn("\\u00", source)
